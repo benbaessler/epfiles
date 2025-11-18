@@ -79,18 +79,18 @@ Based on public records, the following Epstein-related document releases should 
 ## 4. Research Tasks
 
 ### Immediate Next Steps
-- [ ] **URGENT: Locate November 2025 release download page** (23,000+ documents)
-- [ ] Catalog all PDF bundles, ZIP files, and individual documents from all releases
+- [x] **URGENT: Locate November 2025 release download page** (23,000+ documents)
+- [x] Catalog all PDF bundles, ZIP files, and individual documents from all releases
 - [ ] Verify document counts and file sizes (especially the 23,000 document collection)
-- [ ] Check for any updates or additional releases since November 2025
-- [ ] Verify existence and accessibility of third-party repositories
-- [ ] Clone repositories to examine processed data structure
-- [ ] Assess storage requirements for 23,000+ document dataset
+- [x] Check for any updates or additional releases since November 2025
+- [x] Verify existence and accessibility of third-party repositories
+- [x] Clone repositories to examine processed data structure
+- [x] Assess storage requirements for 23,000+ document dataset
 
 ### Verification Needed
 - [ ] Cross-reference with news reports about document releases
-- [ ] Ensure all documents are from authoritative .gov sources
-- [ ] Check for any corrections or redactions
+- [x] Ensure all documents are from authoritative .gov sources
+- [x] Check for any corrections or redactions
 
 ## 5. Inventory Format
 
@@ -121,11 +121,12 @@ Once complete, this inventory will contain:
 - **Processing complexity**: Much higher - will require robust automation and parallel processing
   
 ### Next Steps
-- [ ] **URGENT: Download 23,000+ documents from Google Drive link** (Step 2)
+- [x] **URGENT: Download 23,000+ documents from Google Drive link** (Step 2)
 - [ ] Verify all files downloaded successfully and check file integrity
-- [ ] Organize files by type: DATA, IMAGES, NATIVES, TEXT
-- [ ] Test accessibility of third-party repositories
-- [ ] Clone and analyze processed repositories for augmentation data
+- [x] Organize files by type: DATA, IMAGES, NATIVES, TEXT
+- [x] Test accessibility of third-party repositories
+- [x] Clone and analyze processed repositories for augmentation data
+- [ ] relevant repo: https://github.com/dleerdefi/epstein-network-data
 - [ ] Still locate official House Oversight URLs for completeness/verification
 
 ### Notes
