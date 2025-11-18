@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+
+### Task Tracking in `@log.md`
+
+1.  **Maximum Detail**: Each task description must be as detailed and context-rich as possible. Explain the *why* and *what* of the task, not just the action.
+
+2.  **File and Line References**: When a task relates to specific files, you MUST include references to those files. If applicable, include line numbers to pinpoint the exact context.
+
+    *   Format: `See @path/to/file.md:L10-L25`
+
+3.  **Clarity over Brevity**: Prioritize clear, unambiguous descriptions over short, cryptic notes. Another person (or you, in a week) should be able to understand the task's full scope without needing to ask for clarification.
