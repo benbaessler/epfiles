@@ -2,3 +2,8 @@ raw/
 repos/
 extracted/
 clean/
+thirdparty/
+manifest/manifest+thirdparty.jsonl
+.DS_Store
+__pycache__/
+*.pyc
