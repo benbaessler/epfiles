@@ -1,6 +1,6 @@
 # Immediate Tasks
 
-- **Ingest reusable extractions from third-party repos into the unified manifest**. Implement the “Step 7” pipeline stage from `@instructions.md:L98-L108` to systematically import OCR text, JSON entity lists, and reconstructed documents from cloned third-party repositories under `/repos/` (e.g., `epstein-docs.github.io`, `paulgp/epstein-document-search`, `ChrisSc/epstein-files`). Design a deterministic mapping layer that normalizes their heterogeneous file layouts and schemas into the canonical manifest format defined in `@manifest/README.md:L20-L75`, ensuring each imported artifact is keyed by `doc_id`, linked back to its original `source_repo` and `source_path`, and reconciled against the authoritative House Oversight entries already present in `@manifest/manifest.jsonl:L1-L23125`. The outcome is an updated manifest and companion sidecar structures (e.g., under `/thirdparty/`) where external OCR text, entities, and reconstructed docs are available as augmentations to local `/extracted` and `/clean` outputs, never as silent replacements. See also `@sources/thirdparty.md:L1-L220` for the inventory of repos and their expected data products.
+-
 
 # Later
 
