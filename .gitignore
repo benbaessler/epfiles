@@ -8,3 +8,5 @@ manifest/manifest+thirdparty.jsonl
 __pycache__/
 *.pyc
 chunks/
+finetune/
+training/
