@@ -1,7 +1,7 @@
 ### **Workflow**
 
-*   Track all TODOs and next steps in `@log.md`.
-*   Structure `@log.md` with two sections: `Immediate Tasks` for high-priority items and `Later` for future tasks.
+*   Track all TODOs and next steps in `@.cursor/log.md`.
+*   Structure `@.cursor/log.md` with two sections: `Immediate Tasks` for high-priority items and `Later` for future tasks.
 *   Work through the dataset build in a linear, deterministic sequence. No branching, no “optional” steps.
 
 ---
