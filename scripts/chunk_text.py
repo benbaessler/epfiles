@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import gc
 import json
 import logging
 import re
@@ -154,9 +155,14 @@ def split_long_paragraph(
                     len(window_tokens),
                 )
             )
+        # Release memory from processed tokens
+        del window_tokens
+        del window_text
         if end >= total:
             break
         start = max(end - overlap, start + 1)
+    # Release the full token list after processing
+    del tokens
     return units
 
 
@@ -283,6 +289,10 @@ def chunk_document(
     units = build_paragraph_units(paragraphs, tokenizer, config)
     if not units:
         raise RuntimeError(f"No non-empty paragraphs found for {doc_id}")
+    
+    # Save count before releasing memory from paragraphs list
+    paragraph_count = len(paragraphs)
+    del paragraphs
 
     chunk_records: List[dict] = []
     current_units: List[ParagraphUnit] = []
@@ -291,6 +301,11 @@ def chunk_document(
 
     for unit in units:
         while current_units and current_tokens + unit.token_count > config.max_tokens:
+            # Prevent infinite loop if current_units cannot be reduced further (e.g. it is just overlap)
+            # but adding the next unit still exceeds max_tokens.
+            if current_tokens <= config.overlap_tokens:
+                break
+
             chunk_record, overlap_units = finalize_chunk(
                 doc_id,
                 chunk_index,
@@ -302,8 +317,15 @@ def chunk_document(
             )
             chunk_records.append(chunk_record)
             chunk_index += 1
+            
+            prev_tokens = current_tokens
             current_units = overlap_units.copy()
             current_tokens = sum(item.token_count for item in current_units)
+            
+            # Safety break if we are not reducing size
+            if current_tokens >= prev_tokens:
+                 break
+                 
             if current_tokens >= config.max_tokens:
                 # Safety: prevent infinite loop if overlap is already too large.
                 current_units = []
@@ -349,7 +371,7 @@ def chunk_document(
         "Chunked %s: %d pages, %d paragraphs, %d chunks (avg %.1f tokens)",
         doc_id,
         len(page_files),
-        len(paragraphs),
+        paragraph_count,
         len(chunk_records),
         avg_tokens,
     )
@@ -357,7 +379,7 @@ def chunk_document(
     return ChunkStats(
         doc_id=doc_id,
         pages=len(page_files),
-        paragraphs=len(paragraphs),
+        paragraphs=paragraph_count,
         chunks=len(chunk_records),
         avg_tokens=avg_tokens,
         skipped_pages=skipped_pages,
@@ -425,8 +447,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-workers",
         type=int,
-        default=4,
-        help="Maximum worker threads (default: 4).",
+        default=2,
+        help="Maximum worker threads (default: 2).",
     )
     parser.add_argument(
         "--dry-run",
@@ -462,28 +484,68 @@ def main() -> None:
 
     tokenizer = Tokenizer(config.encoding_name)
     selected_ids = set(args.doc_ids) if args.doc_ids else None
-    manifest_entries = list(iter_manifest(args.manifest, selected_ids, args.limit))
-
-    if not manifest_entries:
+    
+    # Count total documents without loading all into memory
+    total_docs = 0
+    for _ in iter_manifest(args.manifest, selected_ids, args.limit):
+        total_docs += 1
+    
+    if total_docs == 0:
         logging.info("No manifest entries matched the filters. Nothing to do.")
         return
 
-    logging.info("Discovered %d documents to chunk.", len(manifest_entries))
+    logging.info("Discovered %d documents to chunk.", total_docs)
 
     out_root: Path = args.out_root.resolve()
     clean_root: Path = args.clean_root.resolve()
 
-    stats: List[ChunkStats] = []
+    total_chunks = 0
+    processed = 0
 
     def _worker(entry: dict) -> ChunkStats:
         return chunk_document(entry, clean_root, out_root, tokenizer, config, args.dry_run)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:
-        for result in executor.map(_worker, manifest_entries):
-            stats.append(result)
+    # Process in smaller batches to avoid memory buildup
+    batch_size = max(1, args.max_workers * 2)
+    manifest_iterator = iter_manifest(args.manifest, selected_ids, args.limit)
+    
+    if args.max_workers <= 1:
+        logging.info("Running in serial mode (max_workers=%d).", args.max_workers)
+        for i, entry in enumerate(manifest_iterator):
+            try:
+                logging.debug("Starting chunking for doc_id: %s", entry.get("doc_id"))
+                result = _worker(entry)
+                total_chunks += result.chunks
+                processed += 1
+                if (i + 1) % 50 == 0:
+                    logging.info("Processed %d/%d documents...", processed, total_docs)
+                    gc.collect()
+            except Exception:
+                logging.exception("Failed to process doc_id: %s", entry.get("doc_id"))
+                # Continue processing other documents
+                continue
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:
+            batch = []
+            for entry in manifest_iterator:
+                batch.append(entry)
+                if len(batch) >= batch_size:
+                    # Process batch and immediately collect results
+                    for result in executor.map(_worker, batch):
+                        total_chunks += result.chunks
+                        processed += 1
+                    batch = []
+                    # Force garbage collection after each batch
+                    gc.collect()
+            
+            # Process remaining entries
+            if batch:
+                for result in executor.map(_worker, batch):
+                    total_chunks += result.chunks
+                    processed += 1
+                gc.collect()
 
-    total_chunks = sum(item.chunks for item in stats)
-    logging.info("Finished chunking %d docs producing %d chunks.", len(stats), total_chunks)
+    logging.info("Finished chunking %d docs producing %d chunks.", processed, total_chunks)
 
 
 if __name__ == "__main__":
