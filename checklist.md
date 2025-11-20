@@ -26,12 +26,12 @@
 
 - [x] Create `requirements.txt`
 - [x] Create `Procfile` for Railway
-- [ ] Push code to GitHub
-- [ ] Deploy to Railway
-- [ ] Add `GROQ_API_KEY` environment variable
-- [ ] Add `OPENAI_API_KEY` environment variable
-- [ ] Test deployed API endpoint
-- [ ] Set up OpenAI usage alerts (for embeddings)
+- [x] Push code to GitHub
+- [x] Deploy to Railway
+- [x] Add `GROQ_API_KEY` environment variable
+- [x] Add `OPENAI_API_KEY` environment variable
+- [x] Fix Railway deployment crash (missing ChromaDB collection)
+wh
 
 ### Frontend (Phase 5)
 

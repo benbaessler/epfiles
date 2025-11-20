@@ -2,14 +2,24 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict
+from contextlib import asynccontextmanager
 from app.core.config import get_settings
 from app.services.rag_service import RAGService
+from app.core.bootstrap import download_db_if_missing
 
 settings = get_settings()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Download DB if needed
+    download_db_if_missing()
+    yield
+    # Shutdown logic (if any)
+
 app = FastAPI(
     title=settings.api_title,
-    version=settings.api_version
+    version=settings.api_version,
+    lifespan=lifespan
 )
 
 # CORS middleware

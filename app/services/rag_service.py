@@ -16,7 +16,11 @@ class RAGService:
         self.groq_client = Groq(api_key=settings.groq_api_key)
         # ChromaDB for vector storage
         self.chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
-        self.collection = self.chroma_client.get_collection(name=settings.collection_name)
+        # Use get_or_create_collection to avoid crashing if DB is missing/empty
+        self.collection = self.chroma_client.get_or_create_collection(name=settings.collection_name)
+        
+        if self.collection.count() == 0:
+            print(f"WARNING: Collection '{settings.collection_name}' is empty. RAG will not work until data is ingested.")
 
     def embed_query(self, query: str) -> List[float]:
         """Generate embedding for user query."""
