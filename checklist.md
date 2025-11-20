@@ -24,8 +24,8 @@
 
 ### Deployment (Phase 4)
 
-- [ ] Create `requirements.txt`
-- [ ] Create `Procfile` for Railway
+- [x] Create `requirements.txt`
+- [x] Create `Procfile` for Railway
 - [ ] Push code to GitHub
 - [ ] Deploy to Railway
 - [ ] Add `GROQ_API_KEY` environment variable
