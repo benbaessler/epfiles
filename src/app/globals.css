@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  
+  --font-sans: var(--font-inter);
+  /* Fallback to sans since specific fonts were removed */
+  --font-serif: var(--font-inter);
+  --font-mono: var(--font-inter);
+
+  /* Investigative Palette */
+  --color-zinc-850: #1f1f22;
+  --color-zinc-925: #121214;
+  
+  /* New Primary: Blue/Purple-ish (Indigo-500) */
+  --color-primary: #6366f1; 
+  --color-primary-foreground: #ffffff;
+  
+  /* Highlight Color (Yellow - Kept for text highlights) */
+  --color-highlight: #facc15;
+  --color-highlight-foreground: #18181b;
+
+  --color-secondary: #475569; /* Legal Blue */
+  --color-secondary-foreground: #f8fafc;
+  
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+  
+  --color-accent: #6366f1;
+  --color-accent-foreground: #ffffff;
+  
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #f8fafc;
+  
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-ring: #6366f1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  /* Default to Dark Mode Palette */
+  --background: #18181b; /* Deep Zinc */
+  --foreground: #e4e4e7; /* Off-white */
+}
+
+/* Optional Light Mode Override (if needed later) */
+@media (prefers-color-scheme: light) {
+  /* Keeping it dark by default as per design, but ready for override */
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  @apply antialiased selection:bg-primary selection:text-primary-foreground;
+}
+
+/* Custom Scrollbar for that "Workbench" feel */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #18181b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border: 2px solid #18181b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Utility for text highlighting */
+.text-highlight {
+  background-color: var(--color-highlight);
+  color: var(--color-highlight-foreground);
 }
