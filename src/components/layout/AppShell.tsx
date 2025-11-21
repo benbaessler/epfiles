@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Menu, PanelRightClose, PanelLeftClose, PanelLeft, PanelRight } from "lucide-react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Menu, PanelRightClose, PanelRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -12,9 +13,8 @@ interface AppShellProps {
 }
 
 export function AppShell({ sidebar, children, evidence }: AppShellProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
-  const [isEvidenceOpen, setIsEvidenceOpen] = React.useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+  const [isEvidenceOpen, setIsEvidenceOpen] = React.useState(true); // Only for mobile toggle state now
 
   // Close mobile sidebar on resize if screen becomes large
   React.useEffect(() => {
@@ -29,32 +29,11 @@ export function AppShell({ sidebar, children, evidence }: AppShellProps) {
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
-      {/* Mobile Overlay */}
-      {isMobileSidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
-          onClick={() => setIsMobileSidebarOpen(false)}
-        />
-      )}
-
-      {/* Left Sidebar (Context/Tools) */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-zinc-925 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 flex flex-col",
-          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
-          !isSidebarOpen && "lg:hidden"
-        )}
-      >
-        {/* Removed JeffGPT Header */}
-        <div className="flex-1 overflow-auto pt-4">
-            {sidebar}
-        </div>
-      </aside>
-
-      {/* Main Content (The Interrogator) */}
-      <main className="flex-1 flex flex-col min-w-0 relative h-full">
-        {/* Mobile Header */}
-        <header className="flex h-14 items-center justify-between border-b border-border bg-zinc-925 px-4 lg:hidden">
+      
+      {/* Mobile Implementation (Standard Flex/Fixed) - Resizable Panels are awkward on mobile touch usually */}
+      <div className="lg:hidden flex flex-col h-full w-full">
+         {/* Mobile Header */}
+        <header className="flex-none flex h-14 items-center justify-between border-b border-border bg-zinc-925 px-4">
           <Button variant="ghost" size="icon" onClick={() => setIsMobileSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
@@ -64,57 +43,79 @@ export function AppShell({ sidebar, children, evidence }: AppShellProps) {
           </Button>
         </header>
 
-        {/* Desktop Toggles (Minimal - No Top Bar) */}
-        <div className="absolute top-4 left-4 z-20 hidden lg:block">
-            {!isSidebarOpen && (
-                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} title="Open Sidebar" className="bg-background/50 backdrop-blur-sm border border-border">
-                    <PanelLeft className="h-4 w-4" />
-                </Button>
-            )}
-             {isSidebarOpen && (
-                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)} title="Close Sidebar" className="text-muted-foreground hover:text-foreground">
-                    <PanelLeftClose className="h-4 w-4" />
-                </Button>
-            )}
-        </div>
-
-        <div className="absolute top-4 right-4 z-20 hidden lg:block">
-             {isEvidenceOpen ? (
-                <Button variant="ghost" size="icon" onClick={() => setIsEvidenceOpen(false)} title="Close Evidence" className="text-muted-foreground hover:text-foreground">
-                    <PanelRightClose className="h-4 w-4" />
-                </Button>
-             ) : (
-                <Button variant="ghost" size="icon" onClick={() => setIsEvidenceOpen(true)} title="Open Evidence" className="bg-background/50 backdrop-blur-sm border border-border">
-                    <PanelRight className="h-4 w-4" />
-                </Button>
-             )}
-        </div>
-
-
-        <div className="flex-1 overflow-hidden relative bg-background">
-            {children}
-        </div>
-      </main>
-
-      {/* Right Sidebar (The Evidence) */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 right-0 z-50 w-80 xl:w-[450px] border-l border-border bg-zinc-925 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 flex flex-col",
-          isEvidenceOpen ? "translate-x-0" : "translate-x-full lg:hidden",
-          "lg:block" 
+         {/* Mobile Overlay */}
+        {isMobileSidebarOpen && (
+            <div 
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileSidebarOpen(false)}
+            />
         )}
-      >
-        <div className="flex h-14 items-center justify-between border-b border-border px-4 lg:hidden">
-             <span className="font-semibold">Evidence</span>
-             <Button variant="ghost" size="icon" onClick={() => setIsEvidenceOpen(false)}>
-                <PanelRightClose className="h-5 w-5" />
-             </Button>
-        </div>
         
-        <div className="flex-1 overflow-auto h-full">
-            {evidence}
-        </div>
-      </aside>
+        {/* Mobile Left Sidebar */}
+        <aside
+            className={cn(
+            "fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-zinc-925 transition-transform duration-300 ease-in-out flex flex-col",
+            isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+            )}
+        >
+             <div className="flex-1 overflow-auto pt-4">
+                {sidebar}
+            </div>
+        </aside>
+
+         {/* Mobile Main Content */}
+         <main className="flex-1 overflow-hidden relative bg-background">
+            {children}
+         </main>
+
+         {/* Mobile Right Sidebar (Drawer) */}
+        <aside
+            className={cn(
+            "fixed inset-y-0 right-0 z-50 w-80 border-l border-border bg-zinc-925 transition-transform duration-300 ease-in-out flex flex-col",
+            isEvidenceOpen ? "translate-x-0" : "translate-x-full"
+            )}
+        >
+            <div className="flex h-14 items-center justify-between border-b border-border px-4">
+                <span className="font-semibold">Evidence</span>
+                <Button variant="ghost" size="icon" onClick={() => setIsEvidenceOpen(false)}>
+                    <PanelRightClose className="h-5 w-5" />
+                </Button>
+            </div>
+            <div className="flex-1 overflow-auto h-full">
+                {evidence}
+            </div>
+        </aside>
+      </div>
+
+      {/* Desktop Implementation (Resizable Panels) */}
+      <div className="hidden lg:block w-full h-full">
+        <PanelGroup direction="horizontal">
+          {/* Left Sidebar */}
+          <Panel defaultSize={20} minSize={15} maxSize={30} className="bg-zinc-925 flex flex-col">
+            <div className="flex-1 overflow-auto pt-4 h-full">
+                {sidebar}
+            </div>
+          </Panel>
+          
+          <PanelResizeHandle className="w-[1px] bg-zinc-800 focus:outline-none" />
+          
+          {/* Main Content */}
+          <Panel minSize={30} className="bg-background flex flex-col">
+             <div className="flex-1 overflow-hidden relative h-full">
+                {children}
+            </div>
+          </Panel>
+
+          <PanelResizeHandle className="w-[1px] bg-zinc-800 focus:outline-none" />
+
+          {/* Right Sidebar */}
+          <Panel defaultSize={25} minSize={20} maxSize={40} className="bg-zinc-925 flex flex-col">
+             <div className="flex-1 overflow-auto h-full">
+                {evidence}
+            </div>
+          </Panel>
+        </PanelGroup>
+      </div>
     </div>
   );
 }
