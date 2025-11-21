@@ -18,7 +18,7 @@ openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
 # Constants
-CHUNKS_DIR = Path("../dataset/chunks")
+CHUNKS_DIR = Path("data/chunks")
 COLLECTION_NAME = "epstein_files"
 EMBEDDING_MODEL = "text-embedding-3-large"
 PRICE_PER_1M_TOKENS = 0.13  # $0.13 per 1M tokens for text-embedding-3-large
