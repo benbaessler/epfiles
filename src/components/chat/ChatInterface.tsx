@@ -32,7 +32,7 @@ export function ChatInterface() {
     <div className="flex flex-col h-full bg-zinc-950/50">
         {/* Chat Stream */}
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-col min-h-full pb-4 pt-10 max-w-3xl mx-auto w-full">
+        <div className="flex flex-col min-h-full pb-4 pt-2 max-w-3xl mx-auto w-full">
             {mockMessages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
             ))}
