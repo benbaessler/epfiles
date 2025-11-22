@@ -56,24 +56,14 @@ body {
   @apply antialiased selection:bg-primary selection:text-primary-foreground;
 }
 
-/* Custom Scrollbar for that "Workbench" feel */
+/* Hide Scrollbar Globally */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  background: #18181b;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border: 2px solid #18181b;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Utility for text highlighting */
