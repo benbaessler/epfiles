@@ -1,18 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { ChevronRight, Download, ExternalLink, ZoomIn, ZoomOut, Search, FileText } from "lucide-react";
+import { ChevronRight, Download, ExternalLink, ZoomIn, ZoomOut, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
-export function DocumentViewer() {
+interface DocumentViewerProps {
+  onClose?: () => void;
+}
+
+export function DocumentViewer({ onClose }: DocumentViewerProps) {
   return (
     <div className="flex flex-col h-full bg-zinc-900">
       {/* Header / Toolbar */}
       <div className="flex flex-col border-b border-zinc-800 bg-zinc-925">
          {/* Breadcrumbs */}
          <div className="flex items-center gap-1 px-4 py-2 text-xs text-zinc-500 overflow-x-auto whitespace-nowrap">
+            {onClose && (
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 mr-2 text-zinc-500 hover:text-zinc-300" 
+                    onClick={onClose}
+                >
+                    <X className="h-4 w-4" />
+                </Button>
+            )}
             <span className="hover:text-zinc-300 cursor-pointer">Evidence</span>
             <ChevronRight className="h-3 w-3" />
             <span className="hover:text-zinc-300 cursor-pointer">Flight Logs</span>

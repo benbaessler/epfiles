@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useLayout } from "@/lib/layout-context";
 
 export interface Message {
   id: string;
@@ -12,6 +13,7 @@ export interface Message {
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
+  const { setIsEvidenceOpen } = useLayout();
 
   return (
     <div className={cn("flex w-full px-4 py-2", isUser ? "justify-end" : "justify-start")}>
@@ -32,7 +34,12 @@ export function MessageBubble({ message }: { message: Message }) {
         {message.citations && message.citations.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-2 mt-2">
                 {message.citations.map((citation) => (
-                    <Badge key={citation.id} variant="citation">
+                    <Badge 
+                        key={citation.id} 
+                        variant="citation" 
+                        className="cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors"
+                        onClick={() => setIsEvidenceOpen(true)}
+                    >
                         {citation.label}
                     </Badge>
                 ))}
