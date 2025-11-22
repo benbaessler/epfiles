@@ -1,79 +1,202 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message, MessageBubble } from "./MessageBubble";
+import { TopStories } from "./TopStories";
 
-const mockMessages: Message[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "Show me all flight logs from 2002 linking N909JE to Teterboro Airport.",
-    timestamp: "10:42 AM",
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content: "I have analyzed the flight manifests for N909JE (The 'Lolita Express') for the year 2002. There are 3 confirmed records matching your criteria for Teterboro Airport (TEB).\n\nOn June 14, 2002, the aircraft departed TEB for Palm Beach International (PBI). The passenger manifest lists Jeffrey Epstein and Ghislaine Maxwell.\n\nA subsequent entry on August 12, 2002, shows a return flight from PBI to TEB. Note that the passenger list for this flight is redacted in Exhibit B, but cross-referencing with the pilot's personal logbook suggests the presence of two additional undisclosed passengers.",
-    citations: [
-      { id: "c1", label: "[Doc 009: p.12]" },
-      { id: "c2", label: "[Log 2002-06-14]" },
-      { id: "c3", label: "[Deposition GM: p.442]" },
-    ],
-    timestamp: "10:42 AM",
-  },
-];
+interface ApiSource {
+  chunk_id: string;
+  score: number;
+  doc_id: string;
+  page_start: number;
+  page_end: number;
+  text: string;
+}
+
+interface ApiResponse {
+  query: string;
+  answer: string;
+  sources: ApiSource[];
+  model: string;
+  usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
 
 export function ChatInterface() {
   const [input, setInput] = React.useState("");
+  const [messages, setMessages] = React.useState<Message[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const bottomRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  React.useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      textareaRef.current.style.height = "40px"; // Reset height first to get correct scrollHeight
+      const scrollHeight = textareaRef.current.scrollHeight;
+      if (scrollHeight > 40) {
+          textareaRef.current.style.height = `${scrollHeight}px`;
+      }
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "40px";
+    }
+
+    try {
+      const response = await fetch("https://jeffgpt-backend-production.up.railway.app/api/query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: userMessage.content,
+          top_k: 5
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
+      }
+
+      const data: ApiResponse = await response.json();
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.answer,
+        citations: data.sources.map((source) => ({
+          id: source.chunk_id,
+          label: `[Doc ${source.doc_id}: p.${source.page_start}]`,
+        })),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      
+      // Add error message to chat
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "I encountered an error while processing your request. Please try again later.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderInput = () => (
+    <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-lg bg-[#2a292e] shadow-2xl hover:shadow-2xl transition-all focus-within:border-zinc-500">
+      <div className="flex-1 min-h-[40px] flex items-center">
+        <textarea 
+          ref={textareaRef}
+          className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-relaxed"
+          placeholder="Start investigating..."
+          rows={1}
+          value={input}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          style={{ height: "40px" }}
+          disabled={isLoading}
+        />
+      </div>
+      <Button 
+        size="icon" 
+        className="h-10 w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={handleSend}
+        disabled={!input.trim() || isLoading}
+      >
+        {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-6 w-6" />}
+      </Button>
+    </div>
+  );
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-start h-full bg-zinc-950/50 overflow-y-auto p-4 pt-[30vh]">
+        <div className="w-full max-w-3xl flex flex-col items-center pb-8">
+          <h1 className="font-serif text-3xl md:text-4xl text-zinc-100 text-center mb-8 leading-tight">
+            We trained an AI model<br />
+            on the <span className="bg-[#8C5716] text-white px-2 py-1">Epstein files.</span>
+          </h1>
+          
+          <div className="w-full mb-4">
+            {renderInput()}
+          </div>
+
+          <TopStories />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-zinc-950/50">
-        {/* Chat Stream */}
+      {/* Chat Stream */}
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col min-h-full pb-4 pt-2 max-w-3xl mx-auto w-full">
-            {mockMessages.map((msg) => (
+          {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
-            ))}
-            
-            {/* Empty state or bottom spacer */}
-            <div className="h-4" />
+          ))}
+          
+          {isLoading && (
+             <div className="flex w-full px-4 py-2 justify-start">
+               <div className="bg-transparent text-zinc-200 px-0 rounded-2xl py-3 text-sm leading-relaxed flex items-center gap-2">
+                 <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                 <span className="text-zinc-400">Analyzing evidence...</span>
+               </div>
+             </div>
+          )}
+
+          <div ref={bottomRef} className="h-4" />
         </div>
       </div>
 
       {/* Input Area */}
       <div className="p-4 pb-6">
         <div className="mx-auto max-w-3xl">
-            <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-xl bg-[#35343b] shadow-lg hover:shadow-xl transition-all">
-                <div className="flex-1 min-h-[40px] flex items-center">
-                     <textarea 
-                        ref={textareaRef}
-                        className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 text-sm resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-relaxed"
-                        placeholder="Interrogate the evidence..."
-                        rows={1}
-                        value={input}
-                        onChange={handleInput}
-                        style={{ height: "40px" }}
-                     />
-                </div>
-                 <Button 
-                    size="icon" 
-                    className="h-10 w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200"
-                 >
-                    <ArrowUp className="h-5 w-5" />
-                </Button>
-            </div>
-            {/* Footer removed as requested */}
+            {renderInput()}
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@ interface LayoutContextType {
 const LayoutContext = React.createContext<LayoutContextType | undefined>(undefined);
 
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
-  const [isEvidenceOpen, setIsEvidenceOpen] = React.useState(true);
+  const [isEvidenceOpen, setIsEvidenceOpen] = React.useState(false);
 
   const toggleEvidence = () => setIsEvidenceOpen(prev => !prev);
 
@@ -29,4 +29,6 @@ export function useLayout() {
   }
   return context;
 }
+
+
 

@@ -5,8 +5,7 @@
   --color-foreground: var(--foreground);
   
   --font-sans: var(--font-inter);
-  /* Fallback to sans since specific fonts were removed */
-  --font-serif: var(--font-inter);
+  --font-serif: var(--font-libre-baskerville);
   --font-mono: var(--font-inter);
 
   /* Investigative Palette */
@@ -40,7 +39,7 @@
 
 :root {
   /* Default to Dark Mode Palette */
-  --background: #24222e; /* Updated Theme Background */
+  --background: #222126; /* Updated Theme Background */
   --foreground: #e4e4e7; /* Off-white */
 }
 
