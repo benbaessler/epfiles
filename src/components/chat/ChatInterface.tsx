@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Send, Paperclip } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message, MessageBubble } from "./MessageBubble";
 
@@ -27,6 +27,15 @@ const mockMessages: Message[] = [
 
 export function ChatInterface() {
   const [input, setInput] = React.useState("");
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-zinc-950/50">
@@ -43,26 +52,25 @@ export function ChatInterface() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 pb-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="p-4 pb-6">
         <div className="mx-auto max-w-3xl">
-            <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-xl bg-zinc-900/50 shadow-lg focus-within:ring-1 focus-within:ring-primary/50 transition-all">
-                <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 h-10 w-10 shrink-0 rounded-lg">
-                    <Paperclip className="h-5 w-5" />
-                </Button>
-                <div className="flex-1 min-h-[2.5rem]">
+            <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-xl bg-[#35343b] shadow-lg hover:shadow-xl transition-all">
+                <div className="flex-1 min-h-[40px] flex items-center">
                      <textarea 
-                        className="w-full bg-transparent border-0 focus:ring-0 p-2 text-sm resize-none max-h-32 min-h-[40px] text-zinc-200 placeholder:text-zinc-500 outline-none"
+                        ref={textareaRef}
+                        className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 text-sm resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-relaxed"
                         placeholder="Interrogate the evidence..."
                         rows={1}
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={handleInput}
+                        style={{ height: "40px" }}
                      />
                 </div>
                  <Button 
                     size="icon" 
-                    className="h-10 w-10 shrink-0 rounded-lg mb-0.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="h-10 w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200"
                  >
-                    <Send className="h-4 w-4" />
+                    <ArrowUp className="h-5 w-5" />
                 </Button>
             </div>
             {/* Footer removed as requested */}
