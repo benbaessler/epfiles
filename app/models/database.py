@@ -14,7 +14,7 @@ class Conversation(Base):
     session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    metadata = Column(JSONB, default={})  # Store additional metadata (IP, user agent, etc.)
+    conversation_metadata = Column(JSONB, default={})  # Store additional metadata (IP, user agent, etc.)
 
     # Relationship to messages
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")

@@ -24,7 +24,7 @@ class DatabaseService:
         """
         conversation = Conversation(
             session_id=uuid.uuid4(),
-            metadata=metadata or {}
+            conversation_metadata=metadata or {}
         )
         self.db.add(conversation)
         self.db.commit()
