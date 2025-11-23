@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
+import { ArrowUp, Loader2, SquareChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message, MessageBubble } from "./MessageBubble";
 import { TopStories } from "./TopStories";
@@ -25,14 +25,16 @@ interface ApiResponse {
     completion_tokens: number;
     total_tokens: number;
   };
+  session_id: string;
 }
 
 export function ChatInterface() {
-  const [input, setInput] = React.useState("");
-  const [messages, setMessages] = React.useState<Message[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const bottomRef = React.useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     if (bottomRef.current) {
@@ -40,11 +42,38 @@ export function ChatInterface() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const createNewConversation = async () => {
+    try {
+      const response = await fetch("https://jeffgpt-backend-production.up.railway.app/api/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create conversation");
+      }
+
+      const data = await response.json();
+      setSessionId(data.session_id);
+      setMessages([]);
+    } catch (err) {
+      console.error("Failed to create conversation:", err);
+    }
+  };
+
+  const handleNewConversation = () => {
+    setSessionId(null);
+    setMessages([]);
+    setInput("");
+  };
+
+  const handleInput = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     if (textareaRef.current) {
       textareaRef.current.style.height = "40px"; // Reset height first to get correct scrollHeight
@@ -55,7 +84,7 @@ export function ChatInterface() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -88,7 +117,8 @@ export function ChatInterface() {
         },
         body: JSON.stringify({
           query: userMessage.content,
-          top_k: 5
+          top_k: 5,
+          session_id: sessionId
         }),
       });
 
@@ -97,6 +127,11 @@ export function ChatInterface() {
       }
 
       const data: ApiResponse = await response.json();
+
+      // Store session ID from response
+      if (data.session_id && !sessionId) {
+        setSessionId(data.session_id);
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -154,10 +189,14 @@ export function ChatInterface() {
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-start h-full bg-zinc-950/50 overflow-y-auto p-4 pt-[30vh]">
-        <div className="w-full max-w-3xl flex flex-col items-center pb-8">
+      <div className="relative h-full">
+        <div className="absolute top-4 left-4 text-zinc-400 opacity-50 hover:opacity-100 transition-opacity duration-200 cursor-pointer">
+          <SquareChevronRight className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col items-center justify-start h-full bg-zinc-950/50 overflow-y-auto p-4 pt-[30vh]">
+          <div className="w-full max-w-3xl flex flex-col items-center pb-8">
           <h1 className="font-serif text-3xl md:text-4xl text-zinc-100 text-center mb-8 leading-tight">
-            We trained an AI model<br />
+            I&apos;m an AI model trained<br />
             on the <span className="bg-[#8C5716] text-white px-2 py-1">Epstein files.</span>
           </h1>
           
@@ -168,11 +207,26 @@ export function ChatInterface() {
           <TopStories />
         </div>
       </div>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950/50">
+    <div className="flex flex-col h-full bg-zinc-950/50 relative">
+      <div className="absolute top-4 left-4 text-zinc-400 z-50 opacity-50 hover:opacity-100 transition-opacity duration-200 cursor-pointer">
+        <SquareChevronRight className="h-6 w-6" />
+      </div>
+      <div className="absolute top-4 right-4 z-50">
+        <Button
+          onClick={handleNewConversation}
+          variant="outline"
+          size="sm"
+          className="bg-zinc-800/50 hover:bg-zinc-700/50 text-zinc-300 border-zinc-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          New Conversation
+        </Button>
+      </div>
       {/* Chat Stream */}
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col min-h-full pb-4 pt-2 max-w-3xl mx-auto w-full">
