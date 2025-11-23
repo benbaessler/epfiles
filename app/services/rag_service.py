@@ -86,14 +86,27 @@ If the context doesn't contain information to answer the question, explicitly st
 
         return prompt
 
-    def generate_response(self, prompt: str) -> Dict[str, str]:
-        """Generate response using Groq LLM."""
+    def generate_response(self, prompt: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, str]:
+        """Generate response using Groq LLM with conversation history."""
+        if conversation_history is None:
+            conversation_history = []
+        
+        # Build messages array with history
+        messages = [
+            {"role": "system", "content": "You are a factual document assistant specializing in the Epstein files. Always cite sources."}
+        ]
+        
+        # Add conversation history (limit to prevent token overflow)
+        max_history = settings.max_history_messages
+        for msg in conversation_history[-max_history:]:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+        
+        # Add current prompt as the latest user message
+        messages.append({"role": "user", "content": prompt})
+        
         response = self.groq_client.chat.completions.create(
             model=settings.llm_model,
-            messages=[
-                {"role": "system", "content": "You are a factual document assistant specializing in the Epstein files. Always cite sources."},
-                {"role": "user", "content": prompt}
-            ],
+            messages=messages,
             temperature=0.1,  # Low temperature for factual responses
             max_tokens=1000
         )
@@ -108,8 +121,10 @@ If the context doesn't contain information to answer the question, explicitly st
             }
         }
 
-    def query(self, user_query: str) -> Dict:
-        """Main RAG pipeline: embed, retrieve, generate."""
+    def query(self, user_query: str, conversation_history: List[Dict[str, str]] = None) -> Dict:
+        """Main RAG pipeline: embed, retrieve, generate with conversation history."""
+        if conversation_history is None:
+            conversation_history = []
 
         # Step 1: Embed query
         query_embedding = self.embed_query(user_query)
@@ -120,8 +135,8 @@ If the context doesn't contain information to answer the question, explicitly st
         # Step 3: Build prompt
         prompt = self.build_rag_prompt(user_query, chunks)
 
-        # Step 4: Generate response
-        response_data = self.generate_response(prompt)
+        # Step 4: Generate response with conversation history
+        response_data = self.generate_response(prompt, conversation_history)
 
         # Step 5: Return full result
         return {

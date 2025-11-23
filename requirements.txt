@@ -7,3 +7,6 @@ openai
 groq
 chromadb
 httpx
+sqlalchemy
+psycopg2-binary
+alembic

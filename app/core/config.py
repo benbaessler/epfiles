@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     openai_api_key: str  # For embeddings only
     groq_api_key: str     # For LLM inference
 
+    # Database Configuration
+    database_url: str  # PostgreSQL connection URL (Railway auto-injects DATABASE_URL)
+
     # RAG Configuration
     chroma_db_path: str = "./chroma_db"
     collection_name: str = "epstein_files"
@@ -17,6 +20,9 @@ class Settings(BaseSettings):
     # Retrieval Settings
     top_k_chunks: int = 5
     max_context_tokens: int = 8000
+
+    # Conversation Settings
+    max_history_messages: int = 10  # Maximum conversation history to send to LLM
 
     # API Settings
     api_title: str = "Epstein Files RAG API"
