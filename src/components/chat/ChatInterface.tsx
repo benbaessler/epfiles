@@ -47,7 +47,7 @@ export function ChatInterface() {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const createNewConversation = async () => {
+  const createNewConversation = async (shouldClearMessages = true) => {
     try {
       const response = await fetch("https://jeffgpt-backend-production.up.railway.app/api/conversations", {
         method: "POST",
@@ -62,9 +62,13 @@ export function ChatInterface() {
 
       const data = await response.json();
       setSessionId(data.session_id);
-      setMessages([]);
+      if (shouldClearMessages) {
+        setMessages([]);
+      }
+      return data.session_id;
     } catch (err) {
       console.error("Failed to create conversation:", err);
+      return null;
     }
   };
 
@@ -111,6 +115,14 @@ export function ChatInterface() {
     }
 
     try {
+      let currentSessionId = sessionId;
+      if (!currentSessionId) {
+        currentSessionId = await createNewConversation(false);
+        if (!currentSessionId) {
+          throw new Error("Failed to create session");
+        }
+      }
+
       const response = await fetch("https://jeffgpt-backend-production.up.railway.app/api/query", {
         method: "POST",
         headers: {
@@ -119,7 +131,7 @@ export function ChatInterface() {
         body: JSON.stringify({
           query: userMessage.content,
           top_k: 5,
-          session_id: sessionId
+          session_id: currentSessionId
         }),
       });
 
