@@ -60,7 +60,7 @@ class RAGService:
         # Build context from retrieved chunks
         context_parts = []
         for i, chunk in enumerate(chunks, 1):
-            citation = f"[Source {i}: {chunk['doc_id']}, Page {chunk['page_start']}]"
+            citation = f"[Source {i}: {chunk['source_filename']}, Page {chunk['page_start']}]"
             context_parts.append(f"{citation}\n{chunk['text']}\n")
 
         context = "\n---\n\n".join(context_parts)
@@ -68,11 +68,13 @@ class RAGService:
         # Build full prompt
         prompt = f"""You are an AI assistant helping users understand the Jeffrey Epstein document corpus. Your responses must be:
 1. **Accurate**: Based ONLY on the provided context
-2. **Cited**: Include specific source citations for every claim
+2. **Natural**: Provide clean, conversational answers WITHOUT inline citations or reference numbers
 3. **Objective**: Present facts without speculation
-4. **Complete**: Reference multiple sources when relevant
+4. **Complete**: Draw from multiple sources when relevant
 
-If the context doesn't contain information to answer the question, explicitly state: "The provided documents do not contain information about this topic."
+IMPORTANT: If the context doesn't contain relevant information to answer the question, respond EXACTLY with: "I couldn't find anything about that in the documents."
+
+Do NOT include citations, source numbers, or references in your response. Answer naturally as if explaining to someone.
 
 ## CONTEXT FROM EPSTEIN FILES:
 
@@ -82,7 +84,7 @@ If the context doesn't contain information to answer the question, explicitly st
 
 {query}
 
-## YOUR RESPONSE (with citations):"""
+## YOUR RESPONSE:"""
 
         return prompt
 
