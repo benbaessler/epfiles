@@ -13,6 +13,7 @@ interface ApiSource {
   page_start: number;
   page_end: number;
   text: string;
+  source_filename: string;
 }
 
 interface ApiResponse {
@@ -137,10 +138,7 @@ export function ChatInterface() {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: data.answer,
-        citations: data.sources.map((source) => ({
-          id: source.chunk_id,
-          label: `[Doc ${source.doc_id}: p.${source.page_start}]`,
-        })),
+        sources: data.sources,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
