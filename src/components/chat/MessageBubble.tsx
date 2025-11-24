@@ -20,6 +20,8 @@ export interface Message {
   timestamp: string;
 }
 
+import { MessageContent } from "./MessageContent";
+
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
   const { setIsEvidenceOpen } = useLayout();
@@ -57,9 +59,7 @@ export function MessageBubble({ message }: { message: Message }) {
         )}
       >
         <div className="prose prose-invert max-w-none">
-            {message.content.split('\n').map((line, i) => (
-                <p key={i} className="mb-2 last:mb-0">{line}</p>
-            ))}
+            <MessageContent content={message.content} isUser={isUser} />
         </div>
         
         {!isUser && uniqueSources.length > 0 && (
