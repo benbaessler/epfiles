@@ -28,7 +28,9 @@ const MOCK_STORIES: Story[] = [
 export function TopStories() {
   return (
     <div className="w-full max-w-3xl mt-4 space-y-4 opacity-70 hover:opacity-100 transition-opacity duration-200">
-      <h2 className="text-zinc-400 text-lg font-medium text-left">Top stories</h2>
+      <h2 className="text-zinc-400 text-lg font-medium text-left">Top discoveries
+        
+      </h2>
       <div className="space-y-3">
         {MOCK_STORIES.map((story) => (
           <Card 
