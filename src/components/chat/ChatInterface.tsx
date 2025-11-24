@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
-import { ArrowUp, Loader2, SquareChevronRight } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message, MessageBubble } from "./MessageBubble";
 import { TopStories } from "./TopStories";
@@ -221,23 +221,13 @@ export function ChatInterface() {
 
   return (
     <div className="flex h-full bg-zinc-950/50 overflow-hidden">
-      {isSidebarOpen && (
-        <Sidebar
-          onNewChat={handleNewConversation}
-          onClose={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onNewChat={handleNewConversation}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
 
       <div className="flex-1 flex flex-col h-full relative">
-        {!isSidebarOpen && (
-          <div
-            className="absolute top-4 left-4 text-zinc-400 opacity-50 hover:opacity-100 transition-opacity duration-200 cursor-pointer z-50"
-            onClick={() => setIsSidebarOpen(true)}
-          >
-            <SquareChevronRight className="h-6 w-6" />
-          </div>
-        )}
-
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-start h-full overflow-y-auto p-4 pt-[30vh]">
             <div className="w-full max-w-3xl flex flex-col items-center pb-8">

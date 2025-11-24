@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { CirclePlus, SquareChevronLeft } from "lucide-react";
+import { CirclePlus, PanelLeft } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
+  isOpen: boolean;
   onNewChat: () => void;
-  onClose: () => void;
+  onToggle: () => void;
 }
 
-export function Sidebar({ onNewChat, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
   const recentChats = [
     "Flight logs",
     "Epstein connections",
@@ -15,55 +18,85 @@ export function Sidebar({ onNewChat, onClose }: SidebarProps) {
   ];
 
   return (
-    <div className="w-72 h-full bg-[#202026] border-r border-zinc-800 flex flex-col p-4 shrink-0 transition-all duration-300">
-      <div className="flex justify-end mb-6">
+    <div
+      className={cn(
+        "h-full bg-[#202026] border-r border-zinc-800 flex flex-col transition-all duration-300 ease-in-out shrink-0 py-4 pl-3 overflow-hidden",
+        isOpen ? "w-72 pr-4" : "w-16 pr-3"
+      )}
+    >
+      <div className="flex mb-2 justify-start">
         <button
-          onClick={onClose}
-          className="text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+          onClick={onToggle}
+          className="text-zinc-400 hover:text-zinc-200 cursor-pointer w-10 h-10 flex items-center justify-center"
         >
-          <SquareChevronLeft className="h-6 w-6" />
+          <PanelLeft className="h-6 w-6" />
         </button>
       </div>
 
+      <Separator className="bg-zinc-800 mb-4" />
+
       <Button
         onClick={onNewChat}
-        variant="outline"
-        className="w-full justify-center bg-zinc-800/50 hover:bg-zinc-700/50 text-zinc-300 border-zinc-700 mb-8 h-12 text-base font-sans cursor-pointer"
+        variant="ghost"
+        className={cn(
+          "text-zinc-300 mb-4 text-base font-sans cursor-pointer transition-[width] duration-300 hover:bg-zinc-800/50 px-0 justify-start h-10 overflow-hidden",
+          isOpen ? "w-full" : "w-10"
+        )}
       >
-        <CirclePlus className="h-5 w-5 mr-3" />
-        New chat
+        <div className="w-10 shrink-0 flex items-center justify-center">
+          <CirclePlus className="h-6 w-6" />
+        </div>
+        <span
+          className={cn(
+            "whitespace-nowrap overflow-hidden transition-[opacity] duration-300",
+            isOpen ? "opacity-100" : "opacity-0"
+          )}
+        >
+          New chat
+        </span>
       </Button>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="mb-8">
-          <h3 className="font-serif text-sm text-zinc-400 mb-4 px-2 italic">
-            Top discoveries
-          </h3>
-          <div className="space-y-1">
-            {recentChats.map((chat, index) => (
-              <button
-                key={index}
-                className="w-full text-left px-2 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 rounded-md transition-colors font-sans truncate cursor-pointer"
-              >
-                {chat}
-              </button>
-            ))}
-          </div>
-        </div>
+      <Separator className="bg-zinc-800 mb-4" />
 
-        <div>
-          <h3 className="font-serif text-sm text-zinc-400 mb-4 px-2 italic">
-            Recent
-          </h3>
-          <div className="space-y-1">
-            {recentChats.map((chat, index) => (
-              <button
-                key={index}
-                className="w-full text-left px-2 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 rounded-md transition-colors font-sans truncate cursor-pointer"
-              >
-                {chat}
-              </button>
-            ))}
+      <div
+        className={cn(
+          "flex-1 overflow-y-auto overflow-x-hidden w-full transition-all duration-300",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+      >
+        <div className="min-w-[200px]">
+          <div className="mb-4">
+            <h3 className="text-sm text-zinc-400 mb-4 px-2">
+              Top discoveries
+            </h3>
+            <div className="space-y-1">
+              {recentChats.map((chat, index) => (
+                <button
+                  key={index}
+                  className="font-serif w-full text-left px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-800/50 rounded-md font-sans truncate cursor-pointer"
+                >
+                  {chat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Separator className="bg-zinc-800 mb-4" />
+
+          <div>
+            <h3 className="text-sm text-zinc-400 mb-4 px-2">
+              Recent
+            </h3>
+            <div className="space-y-1">
+              {recentChats.map((chat, index) => (
+                <button
+                  key={index}
+                  className="font-serif w-full text-left px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-800/50 rounded-md font-sans truncate cursor-pointer"
+                >
+                  {chat}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
