@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message, MessageBubble } from "./MessageBubble";
@@ -31,11 +32,14 @@ interface ApiResponse {
 }
 
 export function ChatInterface() {
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -101,13 +105,11 @@ export function ChatInterface() {
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-
+  const sendMessage = async (messageContent: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: messageContent,
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -189,6 +191,27 @@ export function ChatInterface() {
     }
   };
 
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    if (!isSignedIn) {
+      setPendingMessage(input.trim());
+      openSignIn();
+      return;
+    }
+
+    await sendMessage(input.trim());
+  };
+
+  // Send pending message after user signs in
+  useEffect(() => {
+    if (isSignedIn && pendingMessage) {
+      sendMessage(pendingMessage);
+      setPendingMessage(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, pendingMessage]);
+
   const renderInput = () => (
     <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-lg bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
       <div className="flex-1 min-h-[40px] flex items-center ">
@@ -221,11 +244,13 @@ export function ChatInterface() {
 
   return (
     <div className="flex h-full bg-zinc-950/50 overflow-hidden">
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onNewChat={handleNewConversation}
-        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-      />
+      {isSignedIn && (
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onNewChat={handleNewConversation}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        />
+      )}
 
       <div className="flex-1 flex flex-col h-full relative">
         {messages.length === 0 ? (

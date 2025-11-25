@@ -20,8 +20,8 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
   return (
     <div
       className={cn(
-        "h-full bg-[#202026] border-r border-zinc-800 flex flex-col transition-all duration-300 ease-in-out shrink-0 py-4 pl-3 overflow-hidden",
-        isOpen ? "w-72 pr-4" : "w-16 pr-3"
+        "h-full bg-[#202026] border-r border-zinc-800 flex flex-col transition-all duration-300 ease-in-out shrink-0 py-4 px-3 overflow-hidden",
+        isOpen ? "w-72" : "w-16"
       )}
     >
       <div className="flex mb-2 justify-start">
