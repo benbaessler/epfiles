@@ -1,15 +1,16 @@
 "use client";
 
-import * as React from "react";
+import { isValidElement, cloneElement, type ReactNode, type ReactElement } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { PanelRightClose, PanelRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AuthButtons } from "@/components/auth/AuthButtons";
 import { cn } from "@/lib/utils";
 import { useLayout } from "@/lib/layout-context";
 
 interface AppShellProps {
-  children: React.ReactNode;
-  evidence: React.ReactNode;
+  children: ReactNode;
+  evidence: ReactNode;
 }
 
 export function AppShell({ children, evidence }: AppShellProps) {
@@ -17,15 +18,22 @@ export function AppShell({ children, evidence }: AppShellProps) {
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
+      {/* Auth Buttons - Fixed top right */}
+      <div className="fixed top-6 right-6 z-50 hidden lg:block">
+        <AuthButtons />
+      </div>
       
       {/* Mobile Implementation (Standard Flex/Fixed) - Resizable Panels are awkward on mobile touch usually */}
       <div className="lg:hidden flex flex-col h-full w-full">
          {/* Mobile Header */}
         <header className="flex-none flex h-14 items-center justify-between border-b border-border bg-zinc-925 px-4">
           <span className="font-semibold">Case File #001</span>
-          <Button variant="ghost" size="icon" onClick={toggleEvidence}>
-            <PanelRight className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <AuthButtons />
+            <Button variant="ghost" size="icon" onClick={toggleEvidence}>
+              <PanelRight className="h-5 w-5" />
+            </Button>
+          </div>
         </header>
 
          {/* Mobile Main Content */}
@@ -69,8 +77,8 @@ export function AppShell({ children, evidence }: AppShellProps) {
                 {/* Right Sidebar */}
                 <Panel defaultSize={40} minSize={30} maxSize={50} className="bg-zinc-925 flex flex-col">
                     <div className="flex-1 overflow-auto h-full">
-                        {React.isValidElement(evidence) 
-                            ? React.cloneElement(evidence as React.ReactElement<{ onClose: () => void }>, { onClose: () => setIsEvidenceOpen(false) }) 
+                        {isValidElement(evidence) 
+                            ? cloneElement(evidence as ReactElement<{ onClose: () => void }>, { onClose: () => setIsEvidenceOpen(false) }) 
                             : evidence
                         }
                     </div>

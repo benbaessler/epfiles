@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Libre_Baskerville } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,12 +28,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body
-        className={`${inter.variable} ${libreBaskerville.variable} antialiased bg-zinc-950 text-zinc-200`}
-      >
-        {children}
-      </body>
-    </html>
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        elements: {
+          formFieldRow__name: {
+            display: "none",
+          },
+        },
+      }}
+    >
+      <html lang="en" className="dark">
+        <body
+          className={`${inter.variable} ${libreBaskerville.variable} antialiased bg-zinc-950 text-zinc-200`}
+        >
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
