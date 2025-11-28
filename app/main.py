@@ -13,12 +13,24 @@ from app.services.db_service import DatabaseService
 
 settings = get_settings()
 
+# Lazy RAG service - initialized after DB download in lifespan
+_rag_service: RAGService = None
+
+def get_rag_service() -> RAGService:
+    """Dependency to get the RAG service instance."""
+    if _rag_service is None:
+        raise HTTPException(status_code=503, detail="RAG service not initialized")
+    return _rag_service
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Download ChromaDB if needed
+    global _rag_service
+    # Startup: Download ChromaDB FIRST (before RAGService touches it)
     download_db_if_missing()
     # Initialize PostgreSQL database tables
     init_db()
+    # NOW initialize RAG service (after DB is downloaded)
+    _rag_service = RAGService()
     yield
     # Shutdown logic (if any)
 
@@ -36,9 +48,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize RAG service
-rag_service = RAGService()
 
 # Request/Response models
 class QueryRequest(BaseModel):
@@ -163,7 +172,11 @@ async def get_conversation_messages(session_id: str, db: Session = Depends(get_d
 
 
 @app.post("/api/query", response_model=QueryResponse)
-async def query_rag(request: QueryRequest, db: Session = Depends(get_db)):
+async def query_rag(
+    request: QueryRequest,
+    db: Session = Depends(get_db),
+    rag_service: RAGService = Depends(get_rag_service)
+):
     """
     Query the Epstein files using RAG with conversation history.
 
