@@ -1,6 +1,9 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { CirclePlus, PanelLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { UserProfileButton } from "@/components/auth/UserProfileButton";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -24,13 +27,21 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
         isOpen ? "w-72" : "w-16"
       )}
     >
-      <div className="flex mb-2 justify-start">
+      <div className="flex mb-2 justify-start items-center">
         <button
           onClick={onToggle}
-          className="text-zinc-400 hover:text-zinc-200 cursor-pointer w-10 h-10 flex items-center justify-center"
+          className="text-zinc-400 hover:text-zinc-200 cursor-pointer w-10 h-10 flex items-center justify-center shrink-0"
         >
           <PanelLeft className="h-6 w-6" />
         </button>
+        <span
+          className={cn(
+            "font-[family-name:var(--font-libre-baskerville)] text-lg text-zinc-200 whitespace-nowrap overflow-hidden transition-opacity duration-300",
+            isOpen ? "opacity-100" : "opacity-0"
+          )}
+        >
+          JeffGPT
+        </span>
       </div>
 
       <Separator className="bg-zinc-800 mb-4" />
@@ -99,6 +110,12 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* User Profile at bottom */}
+      <div className="mt-auto pt-4">
+        <Separator className="bg-zinc-800 mb-4" />
+        <UserProfileButton collapsed={!isOpen} />
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { SignInButton, SignUpButton, useUser, useClerk } from "@clerk/nextjs";
-import { HatGlasses, LogOut, User } from "lucide-react";
+import { SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
+import { HatGlasses } from "lucide-react";
 
 function PrivateChatToggle({
   enabled,
@@ -38,8 +38,7 @@ function PrivateChatToggle({
 }
 
 export function AuthButtons() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
+  const { isLoaded, isSignedIn } = useUser();
   const [privateChatEnabled, setPrivateChatEnabled] = useState(false);
 
   if (!isLoaded) {
@@ -48,32 +47,10 @@ export function AuthButtons() {
 
   if (isSignedIn) {
     return (
-      <div className="flex items-center gap-3">
-        <PrivateChatToggle
-          enabled={privateChatEnabled}
-          onToggle={() => setPrivateChatEnabled(!privateChatEnabled)}
-        />
-        <button
-          onClick={() => signOut()}
-          className="group relative h-10 w-10 rounded-full overflow-hidden cursor-pointer"
-        >
-          {user.imageUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={user.imageUrl}
-              alt="Profile"
-              className="h-full w-full object-cover transition-all duration-200 group-hover:blur-sm group-hover:brightness-50"
-            />
-          ) : (
-            <div className="h-full w-full bg-[#1c1c24] flex items-center justify-center transition-all duration-200 group-hover:brightness-50">
-              <User className="h-5 w-5 text-zinc-400" />
-            </div>
-          )}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <LogOut className="h-5 w-5 text-white" />
-          </div>
-        </button>
-      </div>
+      <PrivateChatToggle
+        enabled={privateChatEnabled}
+        onToggle={() => setPrivateChatEnabled(!privateChatEnabled)}
+      />
     );
   }
 
