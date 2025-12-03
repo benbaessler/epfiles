@@ -77,7 +77,7 @@ class RAGService:
 
 2. **Non-Document Questions**: If the user asks a general question, logical reasoning question, or anything that does NOT require information from the documents, answer it directly using your general knowledge. Do NOT mention or reference the documents at all in this case.
 
-3. **No Relevant Information**: If the question seems document-related but the context doesn't contain relevant information, respond with: "[NO_SOURCES_USED] I couldn't find anything about that in the documents."
+3. **No Relevant Information**: If the question seems document-related but the context doesn't contain relevant information, still answer the user's question as best you can using your general knowledge. Clearly state at the start of your answer that you couldn't find anything relevant in the documents.
 
 4. **Source Indicator**: When your answer DOES use information from the provided context, start your response with "[SOURCES_USED]". When your answer does NOT use the document context, start with "[NO_SOURCES_USED]".
 
