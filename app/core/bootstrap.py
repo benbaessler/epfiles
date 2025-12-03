@@ -7,14 +7,30 @@ from app.core.config import get_settings
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
+def _has_vector_data(db_path: str) -> bool:
+    """Check if ChromaDB has actual vector data (not just an empty initialized DB)."""
+    if not os.path.exists(db_path):
+        return False
+    
+    # ChromaDB stores vectors in UUID-named subdirectories with .bin files
+    # An empty DB will have chroma.sqlite3 but no data_level0.bin files
+    for item in os.listdir(db_path):
+        item_path = os.path.join(db_path, item)
+        if os.path.isdir(item_path):
+            # Check for data_level0.bin which contains actual vector data
+            data_file = os.path.join(item_path, "data_level0.bin")
+            if os.path.exists(data_file) and os.path.getsize(data_file) > 0:
+                return True
+    return False
+
+
 def download_db_if_missing():
     """Downloads and extracts ChromaDB if not present."""
     db_path = settings.chroma_db_path
     
-    # Check if ChromaDB is properly initialized by checking for the SQLite database file
-    sqlite_db_path = os.path.join(db_path, "chroma.sqlite3")
-    if os.path.exists(sqlite_db_path) and os.path.getsize(sqlite_db_path) > 0:
-        print("✅ ChromaDB found. Skipping download.")
+    # Check if ChromaDB has actual vector data (not just an empty shell)
+    if _has_vector_data(db_path):
+        print("✅ ChromaDB with vector data found. Skipping download.")
         return
 
     db_url = os.getenv("CHROMADB_DOWNLOAD_URL")
