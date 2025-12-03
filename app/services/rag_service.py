@@ -10,10 +10,13 @@ class RAGService:
     """Handles RAG operations: embedding queries, retrieving chunks, generating responses."""
 
     def __init__(self):
-        # OpenAI for embeddings only
+        # OpenAI for embeddings and optionally LLM
         self.openai_client = OpenAI(api_key=settings.openai_api_key)
-        # Groq for LLM inference (fast & free!)
-        self.groq_client = Groq(api_key=settings.groq_api_key)
+        # Groq for LLM inference (optional)
+        if settings.llm_provider == "groq" and settings.groq_api_key:
+            self.groq_client = Groq(api_key=settings.groq_api_key)
+        else:
+            self.groq_client = None
         # ChromaDB for vector storage
         self.chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
         # Use get_or_create_collection to avoid crashing if DB is missing/empty
@@ -93,7 +96,7 @@ class RAGService:
         return prompt
 
     def generate_response(self, prompt: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, str]:
-        """Generate response using Groq LLM with conversation history."""
+        """Generate response using configured LLM provider with conversation history."""
         if conversation_history is None:
             conversation_history = []
         
@@ -110,12 +113,21 @@ class RAGService:
         # Add current prompt as the latest user message
         messages.append({"role": "user", "content": prompt})
         
-        response = self.groq_client.chat.completions.create(
-            model=settings.llm_model,
-            messages=messages,
-            temperature=0.1,  # Low temperature for factual responses
-            max_tokens=1000
-        )
+        # Use configured provider
+        if settings.llm_provider == "openai":
+            response = self.openai_client.chat.completions.create(
+                model=settings.llm_model,
+                messages=messages,
+                temperature=0.1,
+                max_tokens=1000
+            )
+        else:
+            response = self.groq_client.chat.completions.create(
+                model=settings.llm_model,
+                messages=messages,
+                temperature=0.1,
+                max_tokens=1000
+            )
 
         return {
             "answer": response.choices[0].message.content,

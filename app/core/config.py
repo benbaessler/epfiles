@@ -1,12 +1,13 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from typing import Literal
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # API Keys
-    openai_api_key: str  # For embeddings only
-    groq_api_key: str     # For LLM inference
+    openai_api_key: str  # For embeddings and optionally LLM
+    groq_api_key: str = ""  # Optional, only needed if using Groq
 
     # Database Configuration
     database_url: str  # PostgreSQL connection URL (Railway auto-injects DATABASE_URL)
@@ -15,7 +16,10 @@ class Settings(BaseSettings):
     chroma_db_path: str = "./chroma_db"
     collection_name: str = "epstein_files"
     embedding_model: str = "text-embedding-3-large"
-    llm_model: str = "llama-3.1-8b-instant"  # Groq's fastest model!
+    
+    # LLM Configuration
+    llm_provider: Literal["openai", "groq"] = "openai"
+    llm_model: str = "gpt-4o-mini"
 
     # Retrieval Settings
     top_k_chunks: int = 5
