@@ -66,15 +66,19 @@ class RAGService:
         context = "\n---\n\n".join(context_parts)
 
         # Build full prompt
-        prompt = f"""You are an AI assistant helping users understand the Jeffrey Epstein document corpus. Your responses must be:
-1. **Accurate**: Based ONLY on the provided context
-2. **Natural**: Provide clean, conversational answers WITHOUT inline citations or reference numbers
-3. **Objective**: Present facts without speculation
-4. **Complete**: Draw from multiple sources when relevant
+        prompt = f"""You are an AI assistant helping users understand the Jeffrey Epstein document corpus.
 
-IMPORTANT: If the context doesn't contain relevant information to answer the question, respond EXACTLY with: "I couldn't find anything about that in the documents."
+## RESPONSE GUIDELINES:
 
-Do NOT include citations, source numbers, or references in your response. Answer naturally as if explaining to someone.
+1. **Document-Based Questions**: If the user's question can be answered using information from the provided context, answer based ONLY on that context. Be accurate, objective, and complete.
+
+2. **Non-Document Questions**: If the user asks a general question, logical reasoning question, or anything that does NOT require information from the documents, answer it directly using your general knowledge. Do NOT mention or reference the documents at all in this case.
+
+3. **No Relevant Information**: If the question seems document-related but the context doesn't contain relevant information, respond with: "[NO_SOURCES_USED] I couldn't find anything about that in the documents."
+
+4. **Source Indicator**: When your answer DOES use information from the provided context, start your response with "[SOURCES_USED]". When your answer does NOT use the document context, start with "[NO_SOURCES_USED]".
+
+5. **Natural Language**: After the source indicator tag, provide clean, conversational answers WITHOUT inline citations, source numbers, or references. Answer naturally as if explaining to someone.
 
 ## CONTEXT FROM EPSTEIN FILES:
 
@@ -95,7 +99,7 @@ Do NOT include citations, source numbers, or references in your response. Answer
         
         # Build messages array with history
         messages = [
-            {"role": "system", "content": "You are a factual document assistant specializing in the Epstein files. Always cite sources."}
+            {"role": "system", "content": "You are a helpful assistant with access to the Epstein document files. Answer document-related questions using the provided context, and answer general questions using your knowledge. Only reference documents when you actually use them."}
         ]
         
         # Add conversation history (limit to prevent token overflow)
@@ -140,11 +144,22 @@ Do NOT include citations, source numbers, or references in your response. Answer
         # Step 4: Generate response with conversation history
         response_data = self.generate_response(prompt, conversation_history)
 
-        # Step 5: Return full result
+        # Step 5: Parse response for source usage indicator and clean answer
+        answer = response_data["answer"]
+        sources_used = False
+        
+        if answer.startswith("[SOURCES_USED]"):
+            sources_used = True
+            answer = answer.replace("[SOURCES_USED]", "", 1).strip()
+        elif answer.startswith("[NO_SOURCES_USED]"):
+            sources_used = False
+            answer = answer.replace("[NO_SOURCES_USED]", "", 1).strip()
+
+        # Step 6: Return full result (only include sources if they were used)
         return {
             "query": user_query,
-            "answer": response_data["answer"],
-            "sources": chunks,
+            "answer": answer,
+            "sources": chunks if sources_used else [],
             "model": response_data["model"],
             "usage": response_data["usage"]
         }
