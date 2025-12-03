@@ -11,8 +11,9 @@ def download_db_if_missing():
     """Downloads and extracts ChromaDB if not present."""
     db_path = settings.chroma_db_path
     
-    # Check if DB exists and is not empty
-    if os.path.exists(db_path) and os.listdir(db_path):
+    # Check if ChromaDB is properly initialized by checking for the SQLite database file
+    sqlite_db_path = os.path.join(db_path, "chroma.sqlite3")
+    if os.path.exists(sqlite_db_path) and os.path.getsize(sqlite_db_path) > 0:
         print("✅ ChromaDB found. Skipping download.")
         return
 
