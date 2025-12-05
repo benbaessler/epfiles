@@ -70,3 +70,260 @@ body {
   background-color: var(--color-highlight);
   color: var(--color-highlight-foreground);
 }
+
+/* Markdown Content Styling */
+.markdown-content {
+  color: inherit;
+  line-height: 1.6;
+}
+
+.markdown-content > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Paragraphs */
+.markdown-content p {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  line-height: 1.6;
+}
+
+.markdown-content p:first-child {
+  margin-top: 0;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Line breaks */
+.markdown-content br {
+  display: block;
+  content: "";
+  margin-top: 0.5em;
+}
+
+/* Headings */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+  color: inherit;
+}
+
+.markdown-content h1:first-child,
+.markdown-content h2:first-child,
+.markdown-content h3:first-child,
+.markdown-content h4:first-child,
+.markdown-content h5:first-child,
+.markdown-content h6:first-child {
+  margin-top: 0;
+}
+
+.markdown-content h1 {
+  font-size: 2em;
+}
+
+.markdown-content h2 {
+  font-size: 1.5em;
+}
+
+.markdown-content h3 {
+  font-size: 1.25em;
+}
+
+.markdown-content h4 {
+  font-size: 1.1em;
+}
+
+.markdown-content h5 {
+  font-size: 1em;
+}
+
+.markdown-content h6 {
+  font-size: 0.9em;
+}
+
+/* Lists */
+.markdown-content ul,
+.markdown-content ol {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 2em;
+  list-style-position: outside;
+}
+
+.markdown-content ul:first-child,
+.markdown-content ol:first-child {
+  margin-top: 0;
+}
+
+.markdown-content ul:last-child,
+.markdown-content ol:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-content ul ul,
+.markdown-content ol ol,
+.markdown-content ul ol,
+.markdown-content ol ul {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-content ul ul {
+  list-style-type: circle;
+}
+
+.markdown-content ul ul ul {
+  list-style-type: square;
+}
+
+/* List items */
+.markdown-content li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.6;
+  padding-left: 0.25em;
+}
+
+.markdown-content li:first-child {
+  margin-top: 0;
+}
+
+.markdown-content li:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content li > p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-content li > p:first-child {
+  margin-top: 0;
+}
+
+.markdown-content li > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Links */
+.markdown-content a {
+  color: #6366f1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-content a:hover {
+  color: #818cf8;
+}
+
+/* Code */
+.markdown-content code {
+  background-color: rgba(0, 0, 0, 0.3);
+  color: #e4e4e7;
+  padding: 0.125em 0.25em;
+  border-radius: 0.25em;
+  font-size: 0.9em;
+  font-family: var(--font-mono);
+}
+
+.markdown-content pre {
+  background-color: rgba(0, 0, 0, 0.3);
+  color: #e4e4e7;
+  padding: 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  line-height: 1.5;
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* Blockquotes */
+.markdown-content blockquote {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 1em;
+  border-left: 4px solid #52525b;
+  color: #a1a1aa;
+  font-style: italic;
+}
+
+/* Horizontal rules */
+.markdown-content hr {
+  margin-top: 2em;
+  margin-bottom: 2em;
+  border: none;
+  border-top: 1px solid #3f3f46;
+}
+
+/* Tables */
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 0.5em 1em;
+  border: 1px solid #3f3f46;
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+}
+
+/* Images */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  border-radius: 0.5em;
+}
+
+/* Strong and emphasis */
+.markdown-content strong {
+  font-weight: 600;
+  color: inherit;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+/* Strikethrough */
+.markdown-content del {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
