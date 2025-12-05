@@ -12,21 +12,25 @@ export default function BillingPage() {
       <header className="px-6 py-4">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer mb-4"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
+        <h1 className="font-[family-name:var(--font-libre-baskerville)] text-3xl text-zinc-100 text-center">
+          Upgrade your plan
+        </h1>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="max-w-4xl w-full">
-          <div className="text-center mb-10">
-            <h1 className="font-[family-name:var(--font-libre-baskerville)] text-3xl text-zinc-100 mb-3">
-              Upgrade your plan
-            </h1>
-          </div>
-
-          <PricingTable />
+        <div className="w-full max-w-6xl">
+          <PricingTable
+            appearance={{
+              elements: {
+                tableRoot: "flex flex-row gap-6 justify-center items-start",
+                planCard: "flex-1 max-w-sm",
+              },
+            }}
+          />
         </div>
       </main>
     </div>

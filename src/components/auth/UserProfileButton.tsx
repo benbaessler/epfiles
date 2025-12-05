@@ -41,8 +41,8 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
 
   return (
     <Popover.Root>
-      <Popover.Trigger className="group relative flex items-center gap-3 rounded-md cursor-pointer overflow-hidden h-12 w-full hover:bg-zinc-800/50">
-        <div className="relative h-10 w-10 rounded-full overflow-hidden shrink-0">
+      <Popover.Trigger className="group relative flex items-center gap-3 rounded-lg cursor-pointer overflow-hidden w-full hover:bg-zinc-700/50 p-2">
+        <div className="relative h-8 w-8 rounded-full overflow-hidden shrink-0">
           {user.imageUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -76,14 +76,14 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
           <Popover.Popup className="bg-[#1c1c24] border border-[#3a3a4a] rounded-lg shadow-xl shadow-black/50 py-1.5 px-1 w-[var(--anchor-width)] z-50">
             <button
               onClick={() => router.push("/billing")}
-              className="w-full flex items-center gap-3 px-3 py-2 text-zinc-300 hover:bg-zinc-700/50 rounded-md cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer"
             >
               <CircleFadingArrowUp className="h-5 w-5 text-zinc-400" />
               Upgrade plan
             </button>
             <button
               onClick={() => signOut()}
-              className="w-full flex items-center gap-3 px-3 py-2 text-zinc-300 hover:bg-zinc-700/50 rounded-md cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer"
             >
               <LogOut className="h-5 w-5 text-zinc-400" />
               Log out

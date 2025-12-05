@@ -5,7 +5,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message, MessageBubble } from "./MessageBubble";
-import { TopStories } from "./TopStories";
+// import { TopStories } from "./TopStories";
 import { Sidebar } from "./Sidebar";
 
 interface ApiSource {
@@ -53,7 +53,13 @@ export function ChatInterface() {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const createNewConversation = async (shouldClearMessages = true) => {
+  const createNewConversation = async (
+    shouldClearMessages = true,
+    retries = 2
+  ): Promise<string | null> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
     try {
       const response = await fetch(
         "https://jeffgpt-backend-production.up.railway.app/api/conversations",
@@ -62,8 +68,11 @@ export function ChatInterface() {
           headers: {
             "Content-Type": "application/json",
           },
+          signal: controller.signal,
         }
       );
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error("Failed to create conversation");
@@ -76,6 +85,14 @@ export function ChatInterface() {
       }
       return data.session_id;
     } catch (err) {
+      clearTimeout(timeoutId);
+
+      // Retry on timeout or network error (cold start handling)
+      if (retries > 0 && (err instanceof Error && (err.name === "AbortError" || err.message.includes("fetch")))) {
+        console.warn(`Retrying conversation creation, ${retries} attempts left...`);
+        return createNewConversation(shouldClearMessages, retries - 1);
+      }
+
       console.error("Failed to create conversation:", err);
       return null;
     }
@@ -133,6 +150,9 @@ export function ChatInterface() {
         }
       }
 
+      const queryController = new AbortController();
+      const queryTimeoutId = setTimeout(() => queryController.abort(), 120000); // 120s for LLM
+
       const response = await fetch(
         "https://jeffgpt-backend-production.up.railway.app/api/query",
         {
@@ -145,8 +165,11 @@ export function ChatInterface() {
             top_k: 5,
             session_id: currentSessionId,
           }),
+          signal: queryController.signal,
         }
       );
+
+      clearTimeout(queryTimeoutId);
 
       if (!response.ok) {
         throw new Error(`API Error: ${response.statusText}`);
@@ -267,7 +290,7 @@ export function ChatInterface() {
 
               <div className="w-full mb-4">{renderInput()}</div>
 
-              <TopStories />
+              {/* <TopStories /> */}
             </div>
           </div>
         ) : (

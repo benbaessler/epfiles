@@ -64,7 +64,7 @@ export function AppShell({ children, evidence }: AppShellProps) {
       <div className="hidden lg:block w-full h-full">
         <PanelGroup direction="horizontal">
           {/* Main Content */}
-          <Panel minSize={30} className="bg-background flex flex-col">
+          <Panel defaultSize={60} minSize={30} className="bg-background flex flex-col">
              <div className="flex-1 overflow-hidden relative h-full">
                 {children}
             </div>

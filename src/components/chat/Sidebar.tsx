@@ -30,32 +30,32 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
       <div className="flex mb-2 justify-start items-center">
         <button
           onClick={onToggle}
-          className="text-zinc-400 hover:text-zinc-200 cursor-pointer w-10 h-10 flex items-center justify-center shrink-0"
+          className="text-zinc-300 hover:text-zinc-200 hover:bg-zinc-700/50 rounded-lg cursor-pointer w-10 h-10 flex items-center justify-center shrink-0"
         >
           <PanelLeft className="h-6 w-6" />
         </button>
-        <span
+        {/* <span
           className={cn(
             "font-[family-name:var(--font-libre-baskerville)] text-lg text-zinc-200 whitespace-nowrap overflow-hidden transition-opacity duration-300",
             isOpen ? "opacity-100" : "opacity-0"
           )}
         >
           JeffGPT
-        </span>
+        </span> */}
       </div>
 
-      <Separator className="bg-zinc-800 mb-4" />
+      {/* <Separator className="bg-zinc-800 mb-4" /> */}
 
       <Button
         onClick={onNewChat}
         variant="ghost"
         className={cn(
-          "text-zinc-300 mb-4 text-base font-sans cursor-pointer transition-[width] duration-300 hover:bg-zinc-800/50 px-0 justify-start h-10 overflow-hidden",
+          "text-zinc-300 mb-4 text-sm font-sans cursor-pointer transition-[width] duration-300 hover:bg-zinc-700/50 px-0 justify-start h-10 overflow-hidden rounded-lg",
           isOpen ? "w-full" : "w-10"
         )}
       >
         <div className="w-10 shrink-0 flex items-center justify-center">
-          <CirclePlus className="h-6 w-6" />
+          <CirclePlus className="h-5 w-5" />
         </div>
         <span
           className={cn(
@@ -67,7 +67,7 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
         </span>
       </Button>
 
-      <Separator className="bg-zinc-800 mb-4" />
+      {/* <Separator className="bg-zinc-800 mb-4" /> */}
 
       <div
         className={cn(
@@ -76,6 +76,7 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
         )}
       >
         <div className="min-w-[200px]">
+          {/* Top discoveries - commented out
           <div className="mb-4">
             <h3 className="text-sm text-zinc-400 mb-4 px-2">
               Top discoveries
@@ -93,16 +94,17 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
           </div>
 
           <Separator className="bg-zinc-800 mb-4" />
+          */}
 
           <div>
-            <h3 className="text-sm text-zinc-400 mb-4 px-2">
+            <h3 className="text-sm text-zinc-400 mb-2 px-2">
               Recent
             </h3>
-            <div className="space-y-1">
+            <div>
               {recentChats.map((chat, index) => (
                 <button
                   key={index}
-                  className="font-serif w-full text-left px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-800/50 rounded-md font-sans truncate cursor-pointer"
+                  className="w-full text-left px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-700/50 rounded-lg font-sans truncate cursor-pointer"
                 >
                   {chat}
                 </button>
