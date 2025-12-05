@@ -7,9 +7,6 @@
         "@base-ui-components/react": "^1.0.0-beta.7",
         "@clerk/nextjs": "^6.35.5",
         "@clerk/themes": "^2.4.40",
-        "@llm-ui/code": "^0.13.3",
-        "@llm-ui/markdown": "^0.13.3",
-        "@llm-ui/react": "^0.13.3",
         "clsx": "^2.1.1",
         "html-react-parser": "^5.2.10",
         "lucide-react": "^0.554.0",
@@ -186,14 +183,6 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
-
-    "@llm-ui/code": ["@llm-ui/code@0.13.3", "", { "dependencies": { "@llm-ui/react": "0.13.3", "@llm-ui/shared": "0.13.3" }, "peerDependencies": { "react": "^18.0.0", "shiki": "^1.6.0" } }, "sha512-bqHjHanYbNetuDJaAmVwIg4vRhH6Cth4Ljo2YxHZNEpDtEqLHonDaAcAq8//mibFGVwhspxIQYClnT8K4Zxlqg=="],
-
-    "@llm-ui/markdown": ["@llm-ui/markdown@0.13.3", "", { "dependencies": { "@llm-ui/react": "0.13.3", "mdast-util-from-markdown": "^2.0.0", "mdast-util-gfm": "^3.0.0", "mdast-util-to-markdown": "^2.1.0", "micromark-extension-gfm": "^3.0.0", "remeda": "^1.57.0", "unist-util-visit": "^5.0.0" }, "peerDependencies": { "react": "^18.0.0" } }, "sha512-7wXte9RXQosSFKneYnVwnxUvwIgov7bE04nqA6PjMBDqxxeSI3FD5TFzrpBMj6+TN2Urraj5iJWaL4IdCQNtsA=="],
-
-    "@llm-ui/react": ["@llm-ui/react@0.13.3", "", { "dependencies": { "remeda": "^1.57.0" }, "peerDependencies": { "react": "^18.0.0" } }, "sha512-b5UtUl8KZp+P4VyAypNqGnSv8jZVJlyYrH8wvOQNIa9x/Y3H4zWiSNTV5BYk5rOJ7WPDCruvLJX/G87+HR1gog=="],
-
-    "@llm-ui/shared": ["@llm-ui/shared@0.13.3", "", { "dependencies": { "@llm-ui/react": "0.13.3" } }, "sha512-+vt6uHnYXKqCtA+rNxCRwxdLFft3muMFA0JYMxf1b11gSMriO0Jgvwwx72dn1YWmX4gF1YHGRbMPWBe7V6CQCA=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@0.2.12", "", { "dependencies": { "@emnapi/core": "^1.4.3", "@emnapi/runtime": "^1.4.3", "@tybys/wasm-util": "^0.10.0" } }, "sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ=="],
 
@@ -984,8 +973,6 @@
     "remark-rehype": ["remark-rehype@11.1.2", "", { "dependencies": { "@types/hast": "^3.0.0", "@types/mdast": "^4.0.0", "mdast-util-to-hast": "^13.0.0", "unified": "^11.0.0", "vfile": "^6.0.0" } }, "sha512-Dh7l57ianaEoIpzbp0PC9UKAdCSVklD8E5Rpw7ETfbTl3FqcOOgq5q2LVDhgGCkaBv7p24JXikPdvhhmHvKMsw=="],
 
     "remark-stringify": ["remark-stringify@11.0.0", "", { "dependencies": { "@types/mdast": "^4.0.0", "mdast-util-to-markdown": "^2.0.0", "unified": "^11.0.0" } }, "sha512-1OSmLd3awB/t8qdoEOMazZkNsfVTeY4fTsgzcQFdXNq8ToTN4ZGwrMnlda4K6smTFKD+GRV6O48i6Z4iKgPPpw=="],
-
-    "remeda": ["remeda@1.61.0", "", {}, "sha512-caKfSz9rDeSKBQQnlJnVW3mbVdFgxgGWQKq1XlFokqjf+hQD5gxutLGTTY2A/x24UxVyJe9gH5fAkFI63ULw4A=="],
 
     "reselect": ["reselect@5.1.1", "", {}, "sha512-K/BG6eIky/SBpzfHZv/dd+9JBFiS4SWV7FIujVyJRux6e45+73RaUHXLmIR1f7WOMaQ0U1km6qwklRQxpJJY0w=="],
 
