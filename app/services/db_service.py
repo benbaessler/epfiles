@@ -12,11 +12,12 @@ class DatabaseService:
     def __init__(self, db_session: Session):
         self.db = db_session
 
-    def create_conversation(self, metadata: Optional[Dict] = None) -> Conversation:
+    def create_conversation(self, user_id: str, metadata: Optional[Dict] = None) -> Conversation:
         """
         Create a new conversation session.
         
         Args:
+            user_id: Clerk user ID
             metadata: Optional metadata dictionary (e.g., IP address, user agent)
             
         Returns:
@@ -24,6 +25,7 @@ class DatabaseService:
         """
         conversation = Conversation(
             session_id=uuid.uuid4(),
+            user_id=user_id,
             conversation_metadata=metadata or {}
         )
         self.db.add(conversation)
@@ -127,18 +129,57 @@ class DatabaseService:
             Conversation.created_at.desc()
         ).limit(limit).all()
 
-    def delete_conversation(self, session_id: UUID) -> bool:
+    def get_user_conversations(self, user_id: str, limit: int = 50) -> List[Conversation]:
+        """
+        Get all conversations for a specific user.
+        
+        Args:
+            user_id: Clerk user ID
+            limit: Maximum number of conversations to return
+            
+        Returns:
+            List of Conversation objects ordered by updated_at (newest first)
+        """
+        return self.db.query(Conversation).filter(
+            Conversation.user_id == user_id
+        ).order_by(
+            Conversation.updated_at.desc()
+        ).limit(limit).all()
+
+    def update_conversation_title(self, session_id: UUID, title: str) -> Optional[Conversation]:
+        """
+        Update the title of a conversation.
+        
+        Args:
+            session_id: UUID of the conversation
+            title: New title for the conversation
+            
+        Returns:
+            Updated Conversation object or None if not found
+        """
+        conversation = self.get_conversation(session_id)
+        if conversation:
+            conversation.title = title[:255] if title else None  # Truncate to max length
+            self.db.commit()
+            self.db.refresh(conversation)
+        return conversation
+
+    def delete_conversation(self, session_id: UUID, user_id: Optional[str] = None) -> bool:
         """
         Delete a conversation and all its messages.
         
         Args:
             session_id: UUID of the conversation to delete
+            user_id: Optional user ID to verify ownership
             
         Returns:
-            True if deleted, False if not found
+            True if deleted, False if not found or user doesn't own it
         """
         conversation = self.get_conversation(session_id)
         if conversation:
+            # If user_id provided, verify ownership
+            if user_id and conversation.user_id != user_id:
+                return False
             self.db.delete(conversation)
             self.db.commit()
             return True

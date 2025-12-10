@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -74,6 +74,7 @@ class QueryResponse(BaseModel):
 
 class ConversationResponse(BaseModel):
     session_id: str
+    title: Optional[str] = None
     created_at: str
     updated_at: str
     message_count: int
@@ -101,18 +102,58 @@ async def root():
 async def health():
     return {"status": "healthy"}
 
+
+def get_user_id(x_user_id: Optional[str] = Header(None)) -> str:
+    """Extract and validate user ID from X-User-Id header."""
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="X-User-Id header required")
+    return x_user_id
+
+
+@app.get("/api/conversations", response_model=List[ConversationResponse])
+async def list_conversations(
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db)
+):
+    """
+    List all conversations for the authenticated user.
+    
+    Requires X-User-Id header.
+    """
+    try:
+        db_service = DatabaseService(db)
+        conversations = db_service.get_user_conversations(user_id)
+        return [
+            ConversationResponse(
+                session_id=str(conv.session_id),
+                title=conv.title,
+                created_at=conv.created_at.isoformat(),
+                updated_at=conv.updated_at.isoformat(),
+                message_count=len(conv.messages)
+            )
+            for conv in conversations
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/conversations", response_model=ConversationResponse)
-async def create_conversation(db: Session = Depends(get_db)):
+async def create_conversation(
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db)
+):
     """
     Create a new conversation session.
     
+    Requires X-User-Id header.
     Returns a session_id that should be used for subsequent queries.
     """
     try:
         db_service = DatabaseService(db)
-        conversation = db_service.create_conversation()
+        conversation = db_service.create_conversation(user_id=user_id)
         return ConversationResponse(
             session_id=str(conversation.session_id),
+            title=conversation.title,
             created_at=conversation.created_at.isoformat(),
             updated_at=conversation.updated_at.isoformat(),
             message_count=0
@@ -122,36 +163,59 @@ async def create_conversation(db: Session = Depends(get_db)):
 
 
 @app.get("/api/conversations/{session_id}", response_model=ConversationResponse)
-async def get_conversation(session_id: str, db: Session = Depends(get_db)):
+async def get_conversation(
+    session_id: str,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db)
+):
     """
     Get conversation metadata by session_id.
+    
+    Requires X-User-Id header. Only returns if user owns the conversation.
     """
     try:
         db_service = DatabaseService(db)
         conversation = db_service.get_conversation(UUID(session_id))
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
+        if conversation.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
         
         message_count = len(conversation.messages)
         return ConversationResponse(
             session_id=str(conversation.session_id),
+            title=conversation.title,
             created_at=conversation.created_at.isoformat(),
             updated_at=conversation.updated_at.isoformat(),
             message_count=message_count
         )
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid session_id format")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/conversations/{session_id}/messages", response_model=List[MessageResponse])
-async def get_conversation_messages(session_id: str, db: Session = Depends(get_db)):
+async def get_conversation_messages(
+    session_id: str,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db)
+):
     """
     Get all messages for a conversation.
+    
+    Requires X-User-Id header. Only returns if user owns the conversation.
     """
     try:
         db_service = DatabaseService(db)
+        conversation = db_service.get_conversation(UUID(session_id))
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        if conversation.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
         messages = db_service.get_conversation_history(UUID(session_id))
         
         return [
@@ -167,6 +231,8 @@ async def get_conversation_messages(session_id: str, db: Session = Depends(get_d
         ]
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid session_id format")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -174,18 +240,21 @@ async def get_conversation_messages(session_id: str, db: Session = Depends(get_d
 @app.post("/api/query", response_model=QueryResponse)
 async def query_rag(
     request: QueryRequest,
+    user_id: str = Depends(get_user_id),
     db: Session = Depends(get_db),
     rag_service: RAGService = Depends(get_rag_service)
 ):
     """
     Query the Epstein files using RAG with conversation history.
 
+    Requires X-User-Id header.
     Returns an answer with citations from the document corpus.
     If session_id is provided, uses conversation history for context.
     If not provided, creates a new conversation session.
     """
     try:
         db_service = DatabaseService(db)
+        is_new_conversation = False
         
         # Get or create conversation session
         if request.session_id:
@@ -193,10 +262,13 @@ async def query_rag(
             conversation = db_service.get_conversation(session_id)
             if not conversation:
                 raise HTTPException(status_code=404, detail="Conversation not found")
+            if conversation.user_id != user_id:
+                raise HTTPException(status_code=403, detail="Access denied")
         else:
             # Create new conversation
-            conversation = db_service.create_conversation()
+            conversation = db_service.create_conversation(user_id=user_id)
             session_id = conversation.session_id
+            is_new_conversation = True
         
         # Get conversation history
         messages = db_service.get_conversation_history(session_id)
@@ -211,6 +283,14 @@ async def query_rag(
             role="user",
             content=request.query
         )
+        
+        # Auto-generate title from first message if new conversation
+        if is_new_conversation or not conversation.title:
+            # Use first 100 chars of the query as title
+            title = request.query[:100].strip()
+            if len(request.query) > 100:
+                title = title.rsplit(' ', 1)[0] + '...'
+            db_service.update_conversation_title(session_id, title)
         
         # Query RAG with conversation history
         result = rag_service.query(request.query, conversation_history)
@@ -230,8 +310,36 @@ async def query_rag(
         return result
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid session_id format")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/conversations/{session_id}")
+async def delete_conversation(
+    session_id: str,
+    user_id: str = Depends(get_user_id),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a conversation and all its messages.
+    
+    Requires X-User-Id header. Only deletes if user owns the conversation.
+    """
+    try:
+        db_service = DatabaseService(db)
+        deleted = db_service.delete_conversation(UUID(session_id), user_id=user_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Conversation not found or access denied")
+        return {"status": "deleted", "session_id": session_id}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session_id format")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

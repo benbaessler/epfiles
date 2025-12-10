@@ -12,6 +12,8 @@ class Conversation(Base):
     __tablename__ = "conversations"
 
     session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String(255), nullable=False, index=True)  # Clerk user ID
+    title = Column(String(255), nullable=True)  # Auto-generated from first message
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     conversation_metadata = Column(JSONB, default={})  # Store additional metadata (IP, user agent, etc.)
@@ -20,7 +22,7 @@ class Conversation(Base):
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Conversation(session_id={self.session_id}, created_at={self.created_at})>"
+        return f"<Conversation(session_id={self.session_id}, user_id={self.user_id}, created_at={self.created_at})>"
 
 
 class Message(Base):
