@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "https://jeffgpt-backend-production.up.railway.app";
 
-function getUserTier(has: (params: { plan: string }) => boolean): string {
+function getUserTier(has?: (params: { plan: string }) => boolean): string {
+  if (!has) return "free";
   if (has({ plan: "research" })) return "research";
   if (has({ plan: "explore" })) return "explore";
   return "free";
