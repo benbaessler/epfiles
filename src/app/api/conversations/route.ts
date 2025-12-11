@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "https://epfiles-backend-production.up.railway.app";
+const BACKEND_URL = process.env.BACKEND_URL || "https://jeffgpt-backend-production.up.railway.app";
 
 function getUserTier(has: (params: { plan: string }) => boolean): string {
   if (has({ plan: "research" })) return "research";
