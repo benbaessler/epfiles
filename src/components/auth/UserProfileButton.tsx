@@ -2,7 +2,7 @@
 
 import { useUser, useClerk, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { LogOut, User, CircleFadingArrowUp } from "lucide-react";
+import { LogOut, User, CircleFadingArrowUp, FileText } from "lucide-react";
 import { Popover } from "@base-ui-components/react/popover";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +85,13 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
             >
               <CircleFadingArrowUp className="h-5 w-5 text-zinc-400" />
               Upgrade plan
+            </button>
+            <button
+              onClick={() => router.push("/legal")}
+              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer"
+            >
+              <FileText className="h-5 w-5 text-zinc-400" />
+              Terms & policies
             </button>
             <button
               onClick={() => signOut()}
