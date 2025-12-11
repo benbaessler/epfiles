@@ -48,10 +48,16 @@
   /* Keeping it dark by default as per design, but ready for override */
 }
 
+html {
+  /* Support for notched devices (iPhone X+) */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  min-height: 100dvh;
   @apply antialiased selection:bg-primary selection:text-primary-foreground;
 }
 
