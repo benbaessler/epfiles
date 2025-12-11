@@ -9,9 +9,11 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog } from "@base-ui-components/react/dialog";
 import { Message, MessageBubble } from "./MessageBubble";
 import { Sidebar } from "./Sidebar";
 import {
@@ -19,13 +21,22 @@ import {
   fetchMessages,
   sendQuery,
   deleteConversation,
+  UsageLimitExceededError,
   type Conversation,
   type ApiMessage,
 } from "@/lib/api";
 
+interface UsageLimitState {
+  exceeded: boolean;
+  current: number;
+  limit: number;
+  tier: string;
+}
+
 export function ChatInterface() {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+  const router = useRouter();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +47,8 @@ export function ChatInterface() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [usageLimit, setUsageLimit] = useState<UsageLimitState | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +61,14 @@ export function ChatInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  // Show suggested questions after 3s delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSuggestions(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch conversations when user signs in
   const loadConversations = useCallback(async () => {
@@ -186,17 +207,28 @@ export function ChatInterface() {
     } catch (err) {
       console.error("Failed to send message:", err);
 
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content:
-          "I encountered an error while processing your request. Please try again later.",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      if (err instanceof UsageLimitExceededError) {
+        setUsageLimit({
+          exceeded: true,
+          current: err.current,
+          limit: err.limit,
+          tier: err.tier,
+        });
+        // Remove the user message we optimistically added
+        setMessages((prev) => prev.slice(0, -1));
+      } else {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content:
+            "I encountered an error while processing your request. Please try again later.",
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -222,6 +254,25 @@ export function ChatInterface() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, pendingMessage]);
+
+  const suggestedQuestions = [
+    "Did Donald Trump know about Epstein's conduct?",
+    "Who appears most frequently in the flight logs between 1999 and 2003?",
+    "What properties did Epstein own and who visited them?",
+    "What does the evidence show about Ghislaine Maxwell's role?",
+  ];
+
+  const handleSuggestedQuestion = async (question: string) => {
+    if (isLoading) return;
+
+    if (!isSignedIn) {
+      setPendingMessage(question);
+      openSignIn();
+      return;
+    }
+
+    await sendMessage(question);
+  };
 
   const renderInput = () => (
     <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-lg bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
@@ -282,6 +333,26 @@ export function ChatInterface() {
               </h1>
 
               <div className="w-full mb-4">{renderInput()}</div>
+
+              <div className="w-full flex flex-wrap gap-2 justify-center">
+                {suggestedQuestions.map((question, index) => (
+                  <button
+                    key={question}
+                    onClick={() => handleSuggestedQuestion(question)}
+                    disabled={isLoading || !showSuggestions}
+                    className={`text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 ${
+                      showSuggestions
+                        ? "opacity-70 hover:opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-2"
+                    }`}
+                    style={{
+                      transitionDelay: showSuggestions ? `${index * 500}ms` : "0ms",
+                    }}
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
@@ -295,7 +366,8 @@ export function ChatInterface() {
 
                 {isLoading && (
                   <div className="flex w-full px-4 py-2 justify-start">
-                    <div className="bg-transparent text-zinc-200 px-0 rounded-2xl py-3 text-sm leading-relaxed flex items-center">
+                    <div className="bg-transparent text-zinc-200 px-0 rounded-2xl py-3 text-sm leading-relaxed flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 text-zinc-400 animate-spin" />
                       <span className="text-zinc-400">Thinking...</span>
                     </div>
                   </div>
@@ -323,6 +395,34 @@ export function ChatInterface() {
         onConfirm={confirmDeleteConversation}
         variant="destructive"
       />
+
+      <Dialog.Root open={usageLimit?.exceeded} onOpenChange={(open) => !open && setUsageLimit(null)}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 bg-black/60 z-50" />
+          <Dialog.Popup className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#1c1c24] border border-zinc-700 rounded-xl p-6 w-full max-w-md z-50 shadow-2xl">
+            <Dialog.Title className="text-xl font-semibold text-zinc-100 mb-2">
+              Message Limit Reached
+            </Dialog.Title>
+            <Dialog.Description className="text-zinc-400 mb-6">
+              You&apos;ve used {usageLimit?.current} of {usageLimit?.limit} messages this month on the {usageLimit?.tier === "free" ? "Free" : usageLimit?.tier === "explore" ? "Explore" : "Research"} plan. Upgrade to continue chatting.
+            </Dialog.Description>
+            <div className="flex gap-3 justify-end">
+              <Dialog.Close className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700/50 rounded-lg cursor-pointer">
+                Cancel
+              </Dialog.Close>
+              <button
+                onClick={() => {
+                  setUsageLimit(null);
+                  router.push("/billing");
+                }}
+                className="px-4 py-2 text-sm font-medium bg-white text-black hover:bg-zinc-200 rounded-lg cursor-pointer"
+              >
+                Upgrade Plan
+              </button>
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

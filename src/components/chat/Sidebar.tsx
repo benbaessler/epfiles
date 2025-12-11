@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { CirclePlus, PanelLeft, Trash2, Loader2 } from "lucide-react";
 import { UserProfileButton } from "@/components/auth/UserProfileButton";
+import { UsageIndicator } from "@/components/ui/UsageIndicator";
 import { cn } from "@/lib/utils";
 import type { Conversation } from "@/lib/api";
 
@@ -122,6 +123,7 @@ export function Sidebar({
 
       {/* User Profile at bottom */}
       <div className="mt-auto pt-4">
+        <UsageIndicator collapsed={!isOpen} />
         <UserProfileButton collapsed={!isOpen} />
       </div>
     </div>

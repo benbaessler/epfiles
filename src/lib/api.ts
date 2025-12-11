@@ -40,18 +40,6 @@ export async function fetchConversations(): Promise<Conversation[]> {
   return response.json();
 }
 
-export async function createConversation(): Promise<Conversation> {
-  const response = await fetch("/api/conversations", {
-    method: "POST",
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to create conversation");
-  }
-
-  return response.json();
-}
-
 export async function fetchMessages(sessionId: string): Promise<ApiMessage[]> {
   const response = await fetch(`/api/conversations/${sessionId}/messages`);
 
@@ -60,6 +48,28 @@ export async function fetchMessages(sessionId: string): Promise<ApiMessage[]> {
   }
 
   return response.json();
+}
+
+export interface UsageLimitError {
+  error: "usage_limit_exceeded";
+  message: string;
+  current: number;
+  limit: number;
+  tier: string;
+}
+
+export class UsageLimitExceededError extends Error {
+  current: number;
+  limit: number;
+  tier: string;
+
+  constructor(data: UsageLimitError) {
+    super(data.message);
+    this.name = "UsageLimitExceededError";
+    this.current = data.current;
+    this.limit = data.limit;
+    this.tier = data.tier;
+  }
 }
 
 export async function sendQuery(
@@ -81,6 +91,11 @@ export async function sendQuery(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+    
+    if (response.status === 429 && error.error === "usage_limit_exceeded") {
+      throw new UsageLimitExceededError(error);
+    }
+    
     throw new Error(error.detail || "Failed to send query");
   }
 
@@ -97,3 +112,19 @@ export async function deleteConversation(sessionId: string): Promise<void> {
   }
 }
 
+export interface UsageStats {
+  current: number;
+  limit: number;
+  tier: string;
+  resets_at: string;
+}
+
+export async function fetchUsage(): Promise<UsageStats> {
+  const response = await fetch("/api/usage");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch usage");
+  }
+
+  return response.json();
+}
