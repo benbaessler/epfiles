@@ -13,9 +13,6 @@ export interface SelectedDocument {
 }
 
 interface LayoutContextType {
-  isEvidenceOpen: boolean;
-  setIsEvidenceOpen: (open: boolean) => void;
-  toggleEvidence: () => void;
   selectedDocument: SelectedDocument | null;
   setSelectedDocument: (doc: SelectedDocument | null) => void;
 }
@@ -23,16 +20,10 @@ interface LayoutContextType {
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
-  const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<SelectedDocument | null>(null);
-
-  const toggleEvidence = () => setIsEvidenceOpen(prev => !prev);
 
   return (
     <LayoutContext.Provider value={{ 
-      isEvidenceOpen, 
-      setIsEvidenceOpen, 
-      toggleEvidence,
       selectedDocument,
       setSelectedDocument
     }}>
@@ -48,6 +39,3 @@ export function useLayout() {
   }
   return context;
 }
-
-
-
