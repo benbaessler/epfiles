@@ -9,7 +9,8 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
+import { ArrowUp, Loader2, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import Link from "next/link";
@@ -30,11 +31,18 @@ import {
 export function ChatInterface() {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+  const posthog = usePostHog();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    // Start with sidebar closed on mobile, open on desktop
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 1024;
+    }
+    return true;
+  });
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
@@ -139,6 +147,9 @@ export function ChatInterface() {
 
     try {
       await deleteConversation(pendingDeleteId);
+      posthog.capture("conversation_deleted", {
+        session_id: pendingDeleteId,
+      });
       // Remove from local state
       setConversations((prev) =>
         prev.filter((c) => c.session_id !== pendingDeleteId)
@@ -173,6 +184,7 @@ export function ChatInterface() {
   };
 
   const sendMessage = async (messageContent: string) => {
+    const isNewConversation = !sessionId;
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -190,6 +202,12 @@ export function ChatInterface() {
     if (textareaRef.current) {
       textareaRef.current.style.height = "40px";
     }
+
+    posthog.capture("query_sent", {
+      session_id: sessionId,
+      is_new_conversation: isNewConversation,
+      query_length: messageContent.length,
+    });
 
     try {
       const data = await sendQuery(messageContent, sessionId);
@@ -212,12 +230,23 @@ export function ChatInterface() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
+      posthog.capture("query_success", {
+        session_id: data.session_id,
+        sources_count: data.sources?.length ?? 0,
+        tokens_used: data.usage?.total_tokens ?? 0,
+      });
+
       // Refresh conversations list to show the new/updated conversation
       loadConversations();
     } catch (err) {
       console.error("Failed to send message:", err);
 
       if (err instanceof UsageLimitExceededError) {
+        posthog.capture("usage_limit_hit", {
+          tier: err.tier,
+          current: err.current,
+          limit: err.limit,
+        });
         // Refresh usage to show the limit message
         setUsage({
           current: err.current,
@@ -228,6 +257,10 @@ export function ChatInterface() {
         // Remove the user message we optimistically added
         setMessages((prev) => prev.slice(0, -1));
       } else {
+        posthog.capture("query_error", {
+          error_type: err instanceof Error ? err.name : "unknown",
+          session_id: sessionId,
+        });
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -273,8 +306,12 @@ export function ChatInterface() {
     "What does the evidence show about Ghislaine Maxwell's role?",
   ];
 
-  const handleSuggestedQuestion = async (question: string) => {
+  const handleSuggestedQuestion = async (question: string, index: number) => {
     if (isLoading || isAtLimit) return;
+
+    posthog.capture("suggested_question_clicked", {
+      question_index: index,
+    });
 
     if (!isSignedIn) {
       setPendingMessage(question);
@@ -294,6 +331,9 @@ export function ChatInterface() {
             <Link
               href="/billing"
               className="text-white underline hover:text-zinc-200"
+              onClick={() =>
+                posthog.capture("upgrade_link_clicked", { tier: usage?.tier })
+              }
             >
               upgrade here
             </Link>
@@ -303,11 +343,11 @@ export function ChatInterface() {
     }
 
     return (
-      <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-lg bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
-        <div className="flex-1 min-h-[40px] flex items-center ">
+      <div className="relative flex flex-col p-2 pb-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
+        <div className="flex-1 min-h-[40px] flex items-center">
           <textarea
             ref={textareaRef}
-            className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-normal"
+            className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 pr-14 sm:pr-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-normal"
             placeholder="Ask me anything..."
             rows={1}
             value={input}
@@ -317,24 +357,34 @@ export function ChatInterface() {
             disabled={isLoading}
           />
         </div>
-        <Button
-          size="icon"
-          className="h-10 w-10 shrink-0 rounded bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={handleSend}
-          disabled={!input.trim() || isLoading}
-        >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <ArrowUp className="h-6 w-6" />
-          )}
-        </Button>
+        <div className="flex justify-end mt-1">
+          <Button
+            size="icon"
+            className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+            ) : (
+              <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
+            )}
+          </Button>
+        </div>
       </div>
     );
   };
 
   return (
     <div className="flex h-full bg-zinc-950/50 overflow-hidden">
+      {/* Mobile sidebar backdrop */}
+      {isSignedIn && isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {isSignedIn && (
         <Sidebar
           isOpen={isSidebarOpen}
@@ -349,6 +399,16 @@ export function ChatInterface() {
       )}
 
       <div className="flex-1 flex flex-col h-full relative">
+        {/* Mobile menu toggle */}
+        {isSignedIn && (
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="lg:hidden absolute top-4 left-4 z-20 text-zinc-300 hover:text-zinc-200 hover:bg-zinc-700/50 rounded-lg cursor-pointer w-10 h-10 flex items-center justify-center"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        )}
+
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-start h-full overflow-y-auto p-4 pt-[20vh] sm:pt-[30vh]">
             <div className="w-full max-w-3xl flex flex-col items-center pb-8">
@@ -363,13 +423,13 @@ export function ChatInterface() {
 
               <div className="w-full mb-4">{renderInput()}</div>
 
-              <div className="w-full flex flex-wrap gap-2 justify-center">
+              <div className="w-full flex flex-wrap gap-1.5 sm:gap-2 justify-center">
                 {suggestedQuestions.map((question, index) => (
                   <button
                     key={question}
-                    onClick={() => handleSuggestedQuestion(question)}
+                    onClick={() => handleSuggestedQuestion(question, index)}
                     disabled={isLoading || !showSuggestions || isAtLimit}
-                    className={`text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 ${
+                    className={`text-xs sm:text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 ${
                       showSuggestions
                         ? "opacity-70 hover:opacity-100 translate-y-0"
                         : "opacity-0 translate-y-2"
@@ -394,7 +454,7 @@ export function ChatInterface() {
                 ))}
 
                 {isLoading && (
-                  <div className="flex w-full px-4 py-2 justify-start">
+                  <div className="flex w-full px-2 sm:px-4 py-2 justify-start">
                     <div className="bg-transparent text-zinc-200 px-0 rounded-2xl py-3 text-sm leading-relaxed flex items-center gap-2">
                       <Loader2 className="h-4 w-4 text-zinc-400 animate-spin" />
                       <span className="text-zinc-400">Thinking...</span>
@@ -407,7 +467,7 @@ export function ChatInterface() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 pb-6">
+            <div className="p-3 sm:p-4 pb-4 sm:pb-6">
               <div className="mx-auto max-w-3xl">{renderInput()}</div>
             </div>
           </>
