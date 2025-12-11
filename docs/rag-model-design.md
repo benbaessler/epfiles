@@ -108,7 +108,7 @@ Create a new directory for the RAG backend:
 
 ```bash
 # Navigate to parent directory
-cd /Users/benbassler/Documents/projects/jeffgpt
+cd /Users/benbassler/Documents/projects/epfiles
 
 # Create backend directory
 mkdir -p rag-backend
@@ -306,7 +306,7 @@ if __name__ == "__main__":
 
 ```bash
 # Ensure you're in rag-backend directory with venv activated
-cd /Users/benbassler/Documents/projects/jeffgpt/rag-backend
+cd /Users/benbassler/Documents/projects/epfiles/rag-backend
 source venv/bin/activate
 
 # Run the script
@@ -588,7 +588,7 @@ if __name__ == "__main__":
 
 ```bash
 # Run the FastAPI server
-cd /Users/benbassler/Documents/projects/jeffgpt/rag-backend
+cd /Users/benbassler/Documents/projects/epfiles/rag-backend
 source venv/bin/activate
 uvicorn app.main:app --reload
 
@@ -622,7 +622,7 @@ curl -X POST "http://localhost:8000/api/query" \
 **Create `requirements.txt`**:
 
 ```bash
-cd /Users/benbassler/Documents/projects/jeffgpt/rag-backend
+cd /Users/benbassler/Documents/projects/epfiles/rag-backend
 source venv/bin/activate
 pip freeze > requirements.txt
 ```
@@ -660,9 +660,9 @@ git add .
 git commit -m "Initial RAG backend"
 
 # Create GitHub repo and push
-gh repo create jeffgpt-rag-backend --public --source=. --remote=origin --push
+gh repo create epfiles-rag-backend --public --source=. --remote=origin --push
 # OR manually create repo on GitHub and:
-git remote add origin https://github.com/YOUR_USERNAME/jeffgpt-rag-backend.git
+git remote add origin https://github.com/YOUR_USERNAME/epfiles-rag-backend.git
 git push -u origin main
 ```
 
@@ -670,7 +670,7 @@ git push -u origin main
 
 1.  Go to [railway.app](https://railway.app) and sign in with GitHub
 2.  Click "New Project" → "Deploy from GitHub repo"
-3.  Select your `jeffgpt-rag-backend` repository
+3.  Select your `epfiles-rag-backend` repository
 4.  Railway will auto-detect Python and start deploying
 5.  Add environment variables:
     - Click on your service → "Variables" tab
