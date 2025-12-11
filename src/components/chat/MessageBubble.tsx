@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLayout } from "@/lib/layout-context";
+import { useLayout, type SelectedDocument } from "@/lib/layout-context";
+import { MessageContent } from "./MessageContent";
 
 export interface Source {
   chunk_id: string;
@@ -21,26 +22,32 @@ export interface Message {
   timestamp: string;
 }
 
-import { MessageContent } from "./MessageContent";
-
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
-  const { setIsEvidenceOpen } = useLayout();
+  const { setIsEvidenceOpen, setSelectedDocument } = useLayout();
 
-  // Group sources by filename to avoid duplicates and strip file extensions
+  // Group sources by filename to avoid duplicates, keeping one source per unique filename
   const uniqueSources = useMemo(() => {
     if (!message.sources || message.sources.length === 0) return [];
     
-    const uniqueFilenames = new Set<string>();
+    const seenFilenames = new Map<string, Source>();
     
     message.sources.forEach((source) => {
-      // Remove file extension (everything after the last dot)
+      // Remove file extension for display grouping
       const filenameWithoutExt = source.source_filename.replace(/\.[^/.]+$/, '');
-      uniqueFilenames.add(filenameWithoutExt);
+      if (!seenFilenames.has(filenameWithoutExt)) {
+        seenFilenames.set(filenameWithoutExt, source);
+      }
     });
     
-    return Array.from(uniqueFilenames).sort();
+    return Array.from(seenFilenames.entries())
+      .sort(([a], [b]) => a.localeCompare(b));
   }, [message.sources]);
+
+  const handleSourceClick = (source: Source) => {
+    setSelectedDocument(source as SelectedDocument);
+    setIsEvidenceOpen(true);
+  };
 
   return (
     <div className={cn("flex w-full px-4 py-2", isUser ? "justify-end" : "justify-start")}>
@@ -62,14 +69,15 @@ export function MessageBubble({ message }: { message: Message }) {
                     Sources
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                    {uniqueSources.map((filename, idx) => (
+                    {uniqueSources.map(([displayName, source]) => (
                         <button
-                            key={idx}
+                            key={source.chunk_id}
                             type="button"
+                            onClick={() => handleSourceClick(source)}
                             className="inline-flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-800/50 rounded-lg text-sm text-zinc-300 cursor-pointer"
                         >
                             <FileText className="w-4 h-4 text-zinc-400" />
-                            <span>{filename}</span>
+                            <span>{displayName}</span>
                         </button>
                     ))}
                 </div>
