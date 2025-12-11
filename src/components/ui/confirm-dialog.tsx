@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Dialog } from "@base-ui-components/react/dialog";
+import { Loader2 } from "lucide-react";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -9,7 +11,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   variant?: "default" | "destructive";
 }
 
@@ -23,9 +25,18 @@ export function ConfirmDialog({
   onConfirm,
   variant = "default",
 }: ConfirmDialogProps) {
-  const handleConfirm = () => {
-    onConfirm();
-    onOpenChange(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    try {
+      await onConfirm();
+      onOpenChange(false);
+    } catch {
+      // Error handling is delegated to the onConfirm callback
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,19 +51,27 @@ export function ConfirmDialog({
             {description}
           </Dialog.Description>
           <div className="flex justify-end gap-3">
-            <Dialog.Close className="px-4 py-2 text-sm font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors">
+            <Dialog.Close
+              disabled={isLoading}
+              className="px-4 py-2 text-sm font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {cancelLabel}
             </Dialog.Close>
             <button
               type="button"
               onClick={handleConfirm}
-              className={`px-4 py-2 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
+              disabled={isLoading}
+              className={`px-4 py-2 text-sm font-medium rounded-lg cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 variant === "destructive"
                   ? "text-white bg-red-600 hover:bg-red-700"
                   : "text-white bg-indigo-600 hover:bg-indigo-700"
               }`}
             >
-              {confirmLabel}
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                confirmLabel
+              )}
             </button>
           </div>
         </Dialog.Popup>
