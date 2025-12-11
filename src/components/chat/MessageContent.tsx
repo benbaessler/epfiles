@@ -37,8 +37,9 @@ function replaceSourceReferences(
   const displayNames = Array.from(sourceMap.keys()).sort((a, b) => b.length - a.length);
   
   // Create regex pattern to match any source name (case-insensitive)
+  // Also capture surrounding quotes to remove them
   const pattern = new RegExp(
-    `(${displayNames.map(name => escapeRegExp(name)).join('|')})`,
+    `["'«»]?(${displayNames.map(name => escapeRegExp(name)).join('|')})["'«»]?`,
     'gi'
   );
 
@@ -56,32 +57,14 @@ function replaceSourceReferences(
         <SourceButton
           key={`${matchedKey}-${index}`}
           displayName={part}
+          docId={source.doc_id}
           onClick={() => onSourceClick(source)}
         />
       );
     }
     
-    // Skip rendering if this is a quote adjacent to a matched source name
-    const isQuote = part === '"' || part === "'" || part === '«' || part === '»';
-    
-    if (isQuote) {
-      // Check if previous or next part is a matched source name
-      const prevPart = parts[index - 1];
-      const nextPart = parts[index + 1];
-      const prevMatched = prevPart && displayNames.find(
-        name => name.toLowerCase() === prevPart.toLowerCase()
-      );
-      const nextMatched = nextPart && displayNames.find(
-        name => name.toLowerCase() === nextPart.toLowerCase()
-      );
-      
-      if (prevMatched || nextMatched) {
-        return null;
-      }
-    }
-    
     return <Fragment key={index}>{part}</Fragment>;
-  }).filter((node): node is ReactNode => node !== null);
+  });
 }
 
 function escapeRegExp(string: string): string {

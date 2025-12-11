@@ -9,7 +9,7 @@ type GDriveEntry = {
 
 type GDriveMapping = Record<string, GDriveEntry>;
 
-const mapping = gdriveMapping as GDriveMapping;
+const mapping = gdriveMapping as unknown as GDriveMapping;
 
 export function getGDriveUrl(docId: string): string | null {
   const entry = mapping[docId];

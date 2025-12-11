@@ -89,6 +89,7 @@ export function MessageBubble({ message }: { message: Message }) {
                   <SourceButton
                     key={source.chunk_id}
                     displayName={displayName}
+                    docId={source.doc_id}
                     onClick={() => handleSourceClick(source)}
                   />
                 ))}
