@@ -1,5 +1,6 @@
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from uuid import UUID
 import uuid
 from app.models.database import Conversation, Message
@@ -184,4 +185,23 @@ class DatabaseService:
             self.db.commit()
             return True
         return False
+
+    def get_user_message_count(self, user_id: str, since: datetime) -> int:
+        """
+        Count user messages (role='user') since a given datetime.
+        
+        Args:
+            user_id: Clerk user ID
+            since: Count messages created after this datetime
+            
+        Returns:
+            Number of user messages since the given datetime
+        """
+        return self.db.query(func.count(Message.id)).join(
+            Conversation, Message.session_id == Conversation.session_id
+        ).filter(
+            Conversation.user_id == user_id,
+            Message.role == "user",
+            Message.created_at >= since
+        ).scalar() or 0
 

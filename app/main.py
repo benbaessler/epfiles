@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from uuid import UUID
+from datetime import datetime, timezone
 from app.core.config import get_settings
 from app.services.rag_service import RAGService
 from app.core.bootstrap import download_db_if_missing
@@ -12,6 +14,49 @@ from app.core.database import init_db, get_db
 from app.services.db_service import DatabaseService
 
 settings = get_settings()
+
+# Tier limits configuration
+TIER_LIMITS = {
+    "free": 15,
+    "explore": 150,
+    "research": 1000,
+}
+
+
+def get_user_id(x_user_id: Optional[str] = Header(None)) -> str:
+    """Extract and validate user ID from X-User-Id header."""
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="X-User-Id header required")
+    return x_user_id
+
+
+def get_user_tier(x_user_tier: Optional[str] = Header(None, alias="X-User-Tier")) -> str:
+    """Extract user tier from X-User-Tier header, defaults to 'free'."""
+    return x_user_tier if x_user_tier in TIER_LIMITS else "free"
+
+
+def get_billing_period_start() -> datetime:
+    """Returns the 1st of the current month in UTC."""
+    now = datetime.now(timezone.utc)
+    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def check_usage_limit(user_id: str, tier: str, db_service: DatabaseService) -> Tuple[bool, int, int]:
+    """
+    Check if user has exceeded their usage limit.
+    
+    Args:
+        user_id: Clerk user ID
+        tier: User's subscription tier (free, explore, research)
+        db_service: Database service instance
+        
+    Returns:
+        Tuple of (allowed, current_count, limit)
+    """
+    limit = TIER_LIMITS.get(tier, TIER_LIMITS["free"])
+    since = get_billing_period_start()
+    current = db_service.get_user_message_count(user_id, since)
+    return (current < limit, current, limit)
 
 # Lazy RAG service - initialized after DB download in lifespan
 _rag_service: RAGService = None
@@ -94,6 +139,7 @@ async def root():
         "version": settings.api_version,
         "endpoints": {
             "query": "/api/query",
+            "usage": "/api/usage",
             "health": "/health"
         }
     }
@@ -103,11 +149,41 @@ async def health():
     return {"status": "healthy"}
 
 
-def get_user_id(x_user_id: Optional[str] = Header(None)) -> str:
-    """Extract and validate user ID from X-User-Id header."""
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail="X-User-Id header required")
-    return x_user_id
+class UsageResponse(BaseModel):
+    current: int
+    limit: int
+    tier: str
+    resets_at: str
+
+
+@app.get("/api/usage", response_model=UsageResponse)
+async def get_usage(
+    user_id: str = Depends(get_user_id),
+    tier: str = Depends(get_user_tier),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current usage stats for the authenticated user.
+    
+    Requires X-User-Id header.
+    Optional X-User-Tier header (defaults to 'free').
+    """
+    db_service = DatabaseService(db)
+    _, current, limit = check_usage_limit(user_id, tier, db_service)
+    
+    # Calculate next reset date (1st of next month)
+    now = datetime.now(timezone.utc)
+    if now.month == 12:
+        next_reset = now.replace(year=now.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        next_reset = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    return UsageResponse(
+        current=current,
+        limit=limit,
+        tier=tier,
+        resets_at=next_reset.isoformat()
+    )
 
 
 @app.get("/api/conversations", response_model=List[ConversationResponse])
@@ -241,6 +317,7 @@ async def get_conversation_messages(
 async def query_rag(
     request: QueryRequest,
     user_id: str = Depends(get_user_id),
+    tier: str = Depends(get_user_tier),
     db: Session = Depends(get_db),
     rag_service: RAGService = Depends(get_rag_service)
 ):
@@ -248,12 +325,28 @@ async def query_rag(
     Query the Epstein files using RAG with conversation history.
 
     Requires X-User-Id header.
+    Optional X-User-Tier header (defaults to 'free').
     Returns an answer with citations from the document corpus.
     If session_id is provided, uses conversation history for context.
     If not provided, creates a new conversation session.
     """
     try:
         db_service = DatabaseService(db)
+        
+        # Check usage limit before processing
+        allowed, current, limit = check_usage_limit(user_id, tier, db_service)
+        if not allowed:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "usage_limit_exceeded",
+                    "message": f"You've reached your {limit} message limit this month",
+                    "current": current,
+                    "limit": limit,
+                    "tier": tier
+                }
+            )
+        
         is_new_conversation = False
         
         # Get or create conversation session
