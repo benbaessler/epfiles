@@ -1,30 +1,57 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CirclePlus, PanelLeft } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { CirclePlus, PanelLeft, Trash2, Loader2 } from "lucide-react";
 import { UserProfileButton } from "@/components/auth/UserProfileButton";
 import { cn } from "@/lib/utils";
+import type { Conversation } from "@/lib/api";
 
 interface SidebarProps {
   isOpen: boolean;
   onNewChat: () => void;
   onToggle: () => void;
+  conversations: Conversation[];
+  isLoading: boolean;
+  currentSessionId: string | null;
+  onSelectConversation: (sessionId: string) => void;
+  onDeleteConversation: (sessionId: string) => void;
 }
 
-export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
-  const recentChats = [
-    "Flight logs",
-    "Epstein connections",
-    "Ghislane Maxwell emails",
-    "Legal transcripts",
-  ];
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+  if (diffDays === 0) {
+    return "Today";
+  } else if (diffDays === 1) {
+    return "Yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
+}
+
+export function Sidebar({
+  isOpen,
+  onNewChat,
+  onToggle,
+  conversations,
+  isLoading,
+  currentSessionId,
+  onSelectConversation,
+  onDeleteConversation,
+}: SidebarProps) {
   return (
     <div
       className={cn(
         "h-full bg-[#202026] border-r border-zinc-800 flex flex-col transition-all duration-300 ease-in-out shrink-0 py-4 px-3 overflow-hidden",
-        isOpen ? "w-72" : "w-16"
+        isOpen ? "w-64 sm:w-72" : "w-14 sm:w-16"
       )}
     >
       <div className="flex mb-2 justify-start items-center">
@@ -34,17 +61,7 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
         >
           <PanelLeft className="h-6 w-6" />
         </button>
-        {/* <span
-          className={cn(
-            "font-[family-name:var(--font-libre-baskerville)] text-lg text-zinc-200 whitespace-nowrap overflow-hidden transition-opacity duration-300",
-            isOpen ? "opacity-100" : "opacity-0"
-          )}
-        >
-          JeffGPT
-        </span> */}
       </div>
-
-      {/* <Separator className="bg-zinc-800 mb-4" /> */}
 
       <Button
         onClick={onNewChat}
@@ -67,8 +84,6 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
         </span>
       </Button>
 
-      {/* <Separator className="bg-zinc-800 mb-4" /> */}
-
       <div
         className={cn(
           "flex-1 overflow-y-auto overflow-x-hidden w-full transition-all duration-300",
@@ -76,39 +91,50 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
         )}
       >
         <div className="min-w-[200px]">
-          {/* Top discoveries - commented out
-          <div className="mb-4">
-            <h3 className="text-sm text-zinc-400 mb-4 px-2">
-              Top discoveries
-            </h3>
-            <div className="space-y-1">
-              {recentChats.map((chat, index) => (
-                <button
-                  key={index}
-                  className="font-serif w-full text-left px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-800/50 rounded-md font-sans truncate cursor-pointer"
-                >
-                  {chat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Separator className="bg-zinc-800 mb-4" />
-          */}
-
           <div>
-            <h3 className="text-sm text-zinc-400 mb-2 px-2">
-              Recent
-            </h3>
-            <div>
-              {recentChats.map((chat, index) => (
-                <button
-                  key={index}
-                  className="w-full text-left px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-700/50 rounded-lg font-sans truncate cursor-pointer"
-                >
-                  {chat}
-                </button>
-              ))}
+            <h3 className="text-sm text-zinc-400 mb-2 px-2">Recent</h3>
+            <div className="space-y-1">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                </div>
+              ) : conversations.length === 0 ? (
+                <p className="text-sm text-zinc-500 px-2 py-2">
+                  No conversations yet
+                </p>
+              ) : (
+                conversations.map((conversation) => (
+                  <div
+                    key={conversation.session_id}
+                    className={cn(
+                      "group flex items-center gap-1 rounded-lg transition-colors",
+                      currentSessionId === conversation.session_id
+                        ? "bg-zinc-700/50"
+                        : "hover:bg-zinc-700/30"
+                    )}
+                  >
+                    <button
+                      onClick={() =>
+                        onSelectConversation(conversation.session_id)
+                      }
+                      className="flex-1 text-left px-2 py-2 text-sm text-zinc-300 font-sans truncate cursor-pointer min-w-0"
+                      title={conversation.title || "Untitled"}
+                    >
+                      {conversation.title || "Untitled"}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteConversation(conversation.session_id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 text-zinc-500 hover:text-red-400 transition-opacity cursor-pointer shrink-0"
+                      title="Delete conversation"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -116,7 +142,6 @@ export function Sidebar({ isOpen, onNewChat, onToggle }: SidebarProps) {
 
       {/* User Profile at bottom */}
       <div className="mt-auto pt-4">
-        <Separator className="bg-zinc-800 mb-4" />
         <UserProfileButton collapsed={!isOpen} />
       </div>
     </div>
