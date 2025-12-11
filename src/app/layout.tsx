@@ -41,6 +41,7 @@ export default function RootLayout({
       <html lang="en" className="dark">
         <body
           className={`${inter.variable} ${libreBaskerville.variable} antialiased bg-zinc-950 text-zinc-200`}
+          suppressHydrationWarning
         >
           {children}
         </body>
