@@ -1,35 +1,26 @@
 "use client";
 
-import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  ChangeEvent,
+  KeyboardEvent,
+} from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message, MessageBubble } from "./MessageBubble";
-// import { TopStories } from "./TopStories";
 import { Sidebar } from "./Sidebar";
-
-interface ApiSource {
-  chunk_id: string;
-  score: number;
-  doc_id: string;
-  page_start: number;
-  page_end: number;
-  text: string;
-  source_filename: string;
-}
-
-interface ApiResponse {
-  query: string;
-  answer: string;
-  sources: ApiSource[];
-  model: string;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-  session_id: string;
-}
+import {
+  fetchConversations,
+  fetchMessages,
+  sendQuery,
+  deleteConversation,
+  type Conversation,
+  type ApiMessage,
+} from "@/lib/api";
 
 export function ChatInterface() {
   const { isSignedIn } = useUser();
@@ -40,6 +31,8 @@ export function ChatInterface() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -53,48 +46,46 @@ export function ChatInterface() {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const createNewConversation = async (
-    shouldClearMessages = true,
-    retries = 2
-  ): Promise<string | null> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+  // Fetch conversations when user signs in
+  const loadConversations = useCallback(async () => {
+    if (!isSignedIn) return;
 
+    setIsLoadingConversations(true);
     try {
-      const response = await fetch(
-        "https://jeffgpt-backend-production.up.railway.app/api/conversations",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error("Failed to create conversation");
-      }
-
-      const data = await response.json();
-      setSessionId(data.session_id);
-      if (shouldClearMessages) {
-        setMessages([]);
-      }
-      return data.session_id;
+      const convos = await fetchConversations();
+      setConversations(convos);
     } catch (err) {
-      clearTimeout(timeoutId);
+      console.error("Failed to load conversations:", err);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, [isSignedIn]);
 
-      // Retry on timeout or network error (cold start handling)
-      if (retries > 0 && (err instanceof Error && (err.name === "AbortError" || err.message.includes("fetch")))) {
-        console.warn(`Retrying conversation creation, ${retries} attempts left...`);
-        return createNewConversation(shouldClearMessages, retries - 1);
-      }
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
 
-      console.error("Failed to create conversation:", err);
-      return null;
+  // Convert API message to UI message
+  const apiMessageToMessage = (msg: ApiMessage): Message => ({
+    id: msg.id.toString(),
+    role: msg.role,
+    content: msg.content,
+    sources: msg.sources,
+    timestamp: new Date(msg.created_at).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  });
+
+  // Load a specific conversation
+  const loadConversation = async (conversationSessionId: string) => {
+    try {
+      const apiMessages = await fetchMessages(conversationSessionId);
+      const uiMessages = apiMessages.map(apiMessageToMessage);
+      setMessages(uiMessages);
+      setSessionId(conversationSessionId);
+    } catch (err) {
+      console.error("Failed to load conversation:", err);
     }
   };
 
@@ -104,10 +95,26 @@ export function ChatInterface() {
     setInput("");
   };
 
+  const handleDeleteConversation = async (conversationSessionId: string) => {
+    try {
+      await deleteConversation(conversationSessionId);
+      // Remove from local state
+      setConversations((prev) =>
+        prev.filter((c) => c.session_id !== conversationSessionId)
+      );
+      // If we deleted the current conversation, clear it
+      if (sessionId === conversationSessionId) {
+        handleNewConversation();
+      }
+    } catch (err) {
+      console.error("Failed to delete conversation:", err);
+    }
+  };
+
   const handleInput = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     if (textareaRef.current) {
-      textareaRef.current.style.height = "40px"; // Reset height first to get correct scrollHeight
+      textareaRef.current.style.height = "40px";
       const scrollHeight = textareaRef.current.scrollHeight;
       if (scrollHeight > 40) {
         textareaRef.current.style.height = `${scrollHeight}px`;
@@ -142,40 +149,7 @@ export function ChatInterface() {
     }
 
     try {
-      let currentSessionId = sessionId;
-      if (!currentSessionId) {
-        currentSessionId = await createNewConversation(false);
-        if (!currentSessionId) {
-          throw new Error("Failed to create session");
-        }
-      }
-
-      const queryController = new AbortController();
-      const queryTimeoutId = setTimeout(() => queryController.abort(), 120000); // 120s for LLM
-
-      const response = await fetch(
-        "https://jeffgpt-backend-production.up.railway.app/api/query",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: userMessage.content,
-            top_k: 5,
-            session_id: currentSessionId,
-          }),
-          signal: queryController.signal,
-        }
-      );
-
-      clearTimeout(queryTimeoutId);
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
-      }
-
-      const data: ApiResponse = await response.json();
+      const data = await sendQuery(messageContent, sessionId);
 
       // Store session ID from response
       if (data.session_id && !sessionId) {
@@ -194,10 +168,12 @@ export function ChatInterface() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Refresh conversations list to show the new/updated conversation
+      loadConversations();
     } catch (err) {
       console.error("Failed to send message:", err);
 
-      // Add error message to chat
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -241,7 +217,7 @@ export function ChatInterface() {
         <textarea
           ref={textareaRef}
           className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-normal"
-          placeholder="Start investigating..."
+          placeholder="Ask me anything..."
           rows={1}
           value={input}
           onChange={handleInput}
@@ -272,14 +248,19 @@ export function ChatInterface() {
           isOpen={isSidebarOpen}
           onNewChat={handleNewConversation}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          conversations={conversations}
+          isLoading={isLoadingConversations}
+          currentSessionId={sessionId}
+          onSelectConversation={loadConversation}
+          onDeleteConversation={handleDeleteConversation}
         />
       )}
 
       <div className="flex-1 flex flex-col h-full relative">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-start h-full overflow-y-auto p-4 pt-[30vh]">
+          <div className="flex flex-col items-center justify-start h-full overflow-y-auto p-4 pt-[20vh] sm:pt-[30vh]">
             <div className="w-full max-w-3xl flex flex-col items-center pb-8">
-              <h1 className="font-serif text-3xl md:text-4xl text-zinc-100 text-center mb-8 leading-tight">
+              <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl text-zinc-100 text-center mb-6 sm:mb-8 leading-tight">
                 I&apos;m an AI model trained
                 <br />
                 on the{" "}
@@ -289,8 +270,6 @@ export function ChatInterface() {
               </h1>
 
               <div className="w-full mb-4">{renderInput()}</div>
-
-              {/* <TopStories /> */}
             </div>
           </div>
         ) : (
