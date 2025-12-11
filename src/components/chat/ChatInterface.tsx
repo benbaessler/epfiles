@@ -9,11 +9,10 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Dialog } from "@base-ui-components/react/dialog";
+import Link from "next/link";
 import { Message, MessageBubble } from "./MessageBubble";
 import { Sidebar } from "./Sidebar";
 import {
@@ -21,22 +20,16 @@ import {
   fetchMessages,
   sendQuery,
   deleteConversation,
+  fetchUsage,
   UsageLimitExceededError,
   type Conversation,
   type ApiMessage,
+  type UsageStats,
 } from "@/lib/api";
-
-interface UsageLimitState {
-  exceeded: boolean;
-  current: number;
-  limit: number;
-  tier: string;
-}
 
 export function ChatInterface() {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
-  const router = useRouter();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,10 +40,12 @@ export function ChatInterface() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [usageLimit, setUsageLimit] = useState<UsageLimitState | null>(null);
+  const [usage, setUsage] = useState<UsageStats | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const isAtLimit = usage ? usage.current >= usage.limit : false;
 
   const scrollToBottom = () => {
     if (bottomRef.current) {
@@ -69,6 +64,21 @@ export function ChatInterface() {
     }, 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Fetch usage when user signs in
+  const loadUsage = useCallback(async () => {
+    if (!isSignedIn) return;
+    try {
+      const data = await fetchUsage();
+      setUsage(data);
+    } catch (err) {
+      console.error("Failed to load usage:", err);
+    }
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    loadUsage();
+  }, [loadUsage]);
 
   // Fetch conversations when user signs in
   const loadConversations = useCallback(async () => {
@@ -208,11 +218,12 @@ export function ChatInterface() {
       console.error("Failed to send message:", err);
 
       if (err instanceof UsageLimitExceededError) {
-        setUsageLimit({
-          exceeded: true,
+        // Refresh usage to show the limit message
+        setUsage({
           current: err.current,
           limit: err.limit,
           tier: err.tier,
+          resets_at: "",
         });
         // Remove the user message we optimistically added
         setMessages((prev) => prev.slice(0, -1));
@@ -263,7 +274,7 @@ export function ChatInterface() {
   ];
 
   const handleSuggestedQuestion = async (question: string) => {
-    if (isLoading) return;
+    if (isLoading || isAtLimit) return;
 
     if (!isSignedIn) {
       setPendingMessage(question);
@@ -274,35 +285,53 @@ export function ChatInterface() {
     await sendMessage(question);
   };
 
-  const renderInput = () => (
-    <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-lg bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
-      <div className="flex-1 min-h-[40px] flex items-center ">
-        <textarea
-          ref={textareaRef}
-          className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-normal"
-          placeholder="Ask me anything..."
-          rows={1}
-          value={input}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          style={{ height: "40px" }}
-          disabled={isLoading}
-        />
+  const renderInput = () => {
+    if (isAtLimit) {
+      return (
+        <div className="relative flex items-center justify-center p-4 border border-zinc-700 rounded-lg bg-[#1a1a1e]">
+          <p className="text-sm text-zinc-400">
+            You have hit your message limit,{" "}
+            <Link
+              href="/billing"
+              className="text-white underline hover:text-zinc-200"
+            >
+              upgrade here
+            </Link>
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-lg bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
+        <div className="flex-1 min-h-[40px] flex items-center ">
+          <textarea
+            ref={textareaRef}
+            className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-normal"
+            placeholder="Ask me anything..."
+            rows={1}
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            style={{ height: "40px" }}
+            disabled={isLoading}
+          />
+        </div>
+        <Button
+          size="icon"
+          className="h-10 w-10 shrink-0 rounded bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleSend}
+          disabled={!input.trim() || isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <ArrowUp className="h-6 w-6" />
+          )}
+        </Button>
       </div>
-      <Button
-        size="icon"
-        className="h-10 w-10 shrink-0 rounded bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        onClick={handleSend}
-        disabled={!input.trim() || isLoading}
-      >
-        {isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <ArrowUp className="h-6 w-6" />
-        )}
-      </Button>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="flex h-full bg-zinc-950/50 overflow-hidden">
@@ -339,7 +368,7 @@ export function ChatInterface() {
                   <button
                     key={question}
                     onClick={() => handleSuggestedQuestion(question)}
-                    disabled={isLoading || !showSuggestions}
+                    disabled={isLoading || !showSuggestions || isAtLimit}
                     className={`text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 ${
                       showSuggestions
                         ? "opacity-70 hover:opacity-100 translate-y-0"
@@ -395,34 +424,6 @@ export function ChatInterface() {
         onConfirm={confirmDeleteConversation}
         variant="destructive"
       />
-
-      <Dialog.Root open={usageLimit?.exceeded} onOpenChange={(open) => !open && setUsageLimit(null)}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 bg-black/60 z-50" />
-          <Dialog.Popup className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#1c1c24] border border-zinc-700 rounded-xl p-6 w-full max-w-md z-50 shadow-2xl">
-            <Dialog.Title className="text-xl font-semibold text-zinc-100 mb-2">
-              Message Limit Reached
-            </Dialog.Title>
-            <Dialog.Description className="text-zinc-400 mb-6">
-              You&apos;ve used {usageLimit?.current} of {usageLimit?.limit} messages this month on the {usageLimit?.tier === "free" ? "Free" : usageLimit?.tier === "explore" ? "Explore" : "Research"} plan. Upgrade to continue chatting.
-            </Dialog.Description>
-            <div className="flex gap-3 justify-end">
-              <Dialog.Close className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700/50 rounded-lg cursor-pointer">
-                Cancel
-              </Dialog.Close>
-              <button
-                onClick={() => {
-                  setUsageLimit(null);
-                  router.push("/billing");
-                }}
-                className="px-4 py-2 text-sm font-medium bg-white text-black hover:bg-zinc-200 rounded-lg cursor-pointer"
-              >
-                Upgrade Plan
-              </button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
     </div>
   );
 }
