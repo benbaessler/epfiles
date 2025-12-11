@@ -18,7 +18,7 @@ const libreBaskerville = Libre_Baskerville({
 });
 
 export const metadata: Metadata = {
-  title: "JeffGPT",
+  title: "epfiles.ai",
   description: "AI-powered forensic analysis of the Epstein files.",
 };
 

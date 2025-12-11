@@ -7,10 +7,10 @@ import { Popover } from "@base-ui-components/react/popover";
 import { cn } from "@/lib/utils";
 
 // Define your subscription plan slugs here (must match Clerk dashboard)
+// Order by priority: highest tier first
 const SUBSCRIPTION_PLANS = [
-  { slug: "pro", name: "Pro" },
   { slug: "research", name: "Research" },
-  { slug: "basic", name: "Basic" },
+  { slug: "explore", name: "Explore" },
 ] as const;
 
 interface UserProfileButtonProps {
@@ -63,7 +63,12 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
           )}
         >
           <span className="text-sm text-zinc-200 font-medium truncate max-w-[180px]">
-            {user.username || user.firstName + " " + user.lastName || "User"}
+            {user.username || 
+             (user.firstName || user.lastName 
+               ? `${user.firstName || ""} ${user.lastName || ""}`.trim() 
+               : null) || 
+             user.emailAddresses[0]?.emailAddress || 
+             "User"}
           </span>
           <span className="text-sm text-zinc-500 truncate max-w-[180px]">
             {subscriptionPlan} Plan
