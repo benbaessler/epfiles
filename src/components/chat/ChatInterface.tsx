@@ -5,12 +5,13 @@ import {
   useEffect,
   useRef,
   useCallback,
-  ChangeEvent,
-  KeyboardEvent,
+  type ChangeEvent,
+  type KeyboardEvent,
 } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Message, MessageBubble } from "./MessageBubble";
 import { Sidebar } from "./Sidebar";
 import {
@@ -33,6 +34,8 @@ export function ChatInterface() {
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -95,19 +98,28 @@ export function ChatInterface() {
     setInput("");
   };
 
-  const handleDeleteConversation = async (conversationSessionId: string) => {
+  const handleDeleteConversation = (conversationSessionId: string) => {
+    setPendingDeleteId(conversationSessionId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteConversation = async () => {
+    if (!pendingDeleteId) return;
+
     try {
-      await deleteConversation(conversationSessionId);
+      await deleteConversation(pendingDeleteId);
       // Remove from local state
       setConversations((prev) =>
-        prev.filter((c) => c.session_id !== conversationSessionId)
+        prev.filter((c) => c.session_id !== pendingDeleteId)
       );
       // If we deleted the current conversation, clear it
-      if (sessionId === conversationSessionId) {
+      if (sessionId === pendingDeleteId) {
         handleNewConversation();
       }
     } catch (err) {
       console.error("Failed to delete conversation:", err);
+    } finally {
+      setPendingDeleteId(null);
     }
   };
 
@@ -300,6 +312,17 @@ export function ChatInterface() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete conversation"
+        description="Are you sure you want to delete this conversation? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDeleteConversation}
+        variant="destructive"
+      />
     </div>
   );
 }

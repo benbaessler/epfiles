@@ -1,4 +1,4 @@
-import type { Source } from "@/components/chat/MessageBubble";
+import type { Source } from "./types";
 
 export interface Conversation {
   session_id: string;
@@ -31,15 +31,7 @@ export interface QueryResponse {
 }
 
 export async function fetchConversations(): Promise<Conversation[]> {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/e95aa682-0643-44bf-9f42-f6e888887a5d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:fetchConversations:entry',message:'Calling /api/conversations',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-
   const response = await fetch("/api/conversations");
-
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/e95aa682-0643-44bf-9f42-f6e888887a5d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:fetchConversations:response',message:'Response received',data:{status:response.status,ok:response.ok,statusText:response.statusText},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 
   if (!response.ok) {
     throw new Error("Failed to fetch conversations");

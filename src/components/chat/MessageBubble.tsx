@@ -1,19 +1,12 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLayout, type SelectedDocument } from "@/lib/layout-context";
+import { useLayout } from "@/lib/layout-context";
+import type { Source } from "@/lib/types";
 import { MessageContent } from "./MessageContent";
 import { SourceButton } from "./SourceButton";
 
-export interface Source {
-  chunk_id: string;
-  score: number;
-  doc_id: string;
-  page_start: number;
-  page_end: number;
-  text: string;
-  source_filename: string;
-}
+export type { Source };
 
 export interface Message {
   id: string;
@@ -47,7 +40,7 @@ export function MessageBubble({ message }: { message: Message }) {
   }, [message.sources]);
 
   const handleSourceClick = (source: Source) => {
-    setSelectedDocument(source as SelectedDocument);
+    setSelectedDocument(source);
   };
 
   return (
@@ -63,7 +56,6 @@ export function MessageBubble({ message }: { message: Message }) {
         <div className="max-w-none">
           <MessageContent
             content={message.content}
-            isUser={isUser}
             sources={message.sources}
             onSourceClick={handleSourceClick}
           />

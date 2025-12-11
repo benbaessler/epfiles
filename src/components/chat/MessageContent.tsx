@@ -1,12 +1,11 @@
 import { useMemo, Fragment, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Source } from './MessageBubble';
+import type { Source } from '@/lib/types';
 import { SourceButton } from './SourceButton';
 
 interface MessageContentProps {
   content: string;
-  isUser: boolean;
   sources?: Source[];
   onSourceClick?: (source: Source) => void;
 }
@@ -71,7 +70,7 @@ function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function MessageContent({ content, isUser, sources, onSourceClick }: MessageContentProps) {
+export function MessageContent({ content, sources, onSourceClick }: MessageContentProps) {
   const sourceMap = useMemo(() => {
     if (!sources || sources.length === 0) return new Map<string, Source>();
     return buildSourceMap(sources);

@@ -1,26 +1,17 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode } from "react";
-
-export interface SelectedDocument {
-  chunk_id: string;
-  score: number;
-  doc_id: string;
-  page_start: number;
-  page_end: number;
-  text: string;
-  source_filename: string;
-}
+import type { Source } from "./types";
 
 interface LayoutContextType {
-  selectedDocument: SelectedDocument | null;
-  setSelectedDocument: (doc: SelectedDocument | null) => void;
+  selectedDocument: Source | null;
+  setSelectedDocument: (doc: Source | null) => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
-  const [selectedDocument, setSelectedDocument] = useState<SelectedDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Source | null>(null);
 
   return (
     <LayoutContext.Provider value={{ 
