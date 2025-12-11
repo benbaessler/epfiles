@@ -1,8 +1,9 @@
-import { useMemo } from "react";
-import { FileText } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLayout, type SelectedDocument } from "@/lib/layout-context";
 import { MessageContent } from "./MessageContent";
+import { SourceButton } from "./SourceButton";
 
 export interface Source {
   chunk_id: string;
@@ -24,7 +25,8 @@ export interface Message {
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
-  const { setIsEvidenceOpen, setSelectedDocument } = useLayout();
+  const { setSelectedDocument } = useLayout();
+  const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
 
   // Group sources by filename to avoid duplicates, keeping one source per unique filename
   const uniqueSources = useMemo(() => {
@@ -46,7 +48,6 @@ export function MessageBubble({ message }: { message: Message }) {
 
   const handleSourceClick = (source: Source) => {
     setSelectedDocument(source as SelectedDocument);
-    setIsEvidenceOpen(true);
   };
 
   return (
@@ -60,28 +61,40 @@ export function MessageBubble({ message }: { message: Message }) {
         )}
       >
         <div className="max-w-none">
-            <MessageContent content={message.content} isUser={isUser} />
+          <MessageContent
+            content={message.content}
+            isUser={isUser}
+            sources={message.sources}
+            onSourceClick={handleSourceClick}
+          />
         </div>
         
         {!isUser && uniqueSources.length > 0 && (
-            <div className="mt-6">
-                <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
-                    Sources
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                    {uniqueSources.map(([displayName, source]) => (
-                        <button
-                            key={source.chunk_id}
-                            type="button"
-                            onClick={() => handleSourceClick(source)}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-800/50 rounded-lg text-sm text-zinc-300 cursor-pointer"
-                        >
-                            <FileText className="w-4 h-4 text-zinc-400" />
-                            <span>{displayName}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => setIsSourcesExpanded(!isSourcesExpanded)}
+              className="flex items-center gap-1 text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 hover:text-zinc-400 cursor-pointer"
+            >
+              {isSourcesExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+              Sources
+            </button>
+            {isSourcesExpanded && (
+              <div className="flex flex-wrap gap-2">
+                {uniqueSources.map(([displayName, source]) => (
+                  <SourceButton
+                    key={source.chunk_id}
+                    displayName={displayName}
+                    onClick={() => handleSourceClick(source)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
