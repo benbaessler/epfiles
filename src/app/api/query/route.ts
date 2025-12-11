@@ -1,14 +1,22 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "https://jeffgpt-backend-production.up.railway.app";
+const BACKEND_URL = process.env.BACKEND_URL || "https://epfiles-backend-production.up.railway.app";
+
+function getUserTier(has: (params: { plan: string }) => boolean): string {
+  if (has({ plan: "research" })) return "research";
+  if (has({ plan: "explore" })) return "explore";
+  return "free";
+}
 
 export async function POST(request: NextRequest) {
-  const { userId } = await auth();
+  const { userId, has } = await auth();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const tier = getUserTier(has);
 
   try {
     const body = await request.json();
@@ -18,6 +26,7 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "X-User-Id": userId,
+        "X-User-Tier": tier,
       },
       body: JSON.stringify(body),
     });
@@ -34,5 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to query" }, { status: 500 });
   }
 }
+
+
 
 

@@ -1,7 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "https://jeffgpt-backend-production.up.railway.app";
+const BACKEND_URL = process.env.BACKEND_URL || "https://epfiles-backend-production.up.railway.app";
+
+function getUserTier(has: (params: { plan: string }) => boolean): string {
+  if (has({ plan: "research" })) return "research";
+  if (has({ plan: "explore" })) return "explore";
+  return "free";
+}
 
 export async function GET() {
   let userId: string | null = null;
@@ -44,11 +50,13 @@ export async function GET() {
 }
 
 export async function POST() {
-  const { userId } = await auth();
+  const { userId, has } = await auth();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const tier = getUserTier(has);
 
   try {
     const response = await fetch(`${BACKEND_URL}/api/conversations`, {
@@ -56,6 +64,7 @@ export async function POST() {
       headers: {
         "Content-Type": "application/json",
         "X-User-Id": userId,
+        "X-User-Tier": tier,
       },
     });
 
