@@ -413,11 +413,57 @@ export function ChatInterface() {
         )}
 
         {messages.length === 0 ? (
-          <div className="flex flex-col h-full min-h-[100dvh] overflow-hidden">
-            {/* Center title */}
-            <div className="flex-1 flex items-center justify-center px-6 pt-20 pb-8">
-              <div className="w-full max-w-3xl flex flex-col items-center">
-                <h1 className="font-serif text-3xl sm:text-3xl md:text-4xl text-zinc-100 text-center leading-tight">
+          <div className="h-full w-full">
+            {/* Mobile: title centered, composer bottom */}
+            <div className="sm:hidden flex flex-col h-full min-h-[100dvh] overflow-hidden">
+              <div className="flex-1 flex items-center justify-center px-6 pt-20 pb-8">
+                <div className="w-full max-w-3xl flex flex-col items-center">
+                  <h1 className="font-serif text-3xl text-zinc-100 text-center leading-tight">
+                    I&apos;m an AI model trained
+                    <br />
+                    on the{" "}
+                    <span className="bg-[#8C5716] text-white px-2 py-1">
+                      Epstein files.
+                    </span>
+                  </h1>
+                </div>
+              </div>
+
+              <div className="w-full px-6 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                <div className="mx-auto max-w-3xl w-full">
+                  <div className="w-full flex flex-col items-stretch gap-3">
+                    <div className="w-full flex flex-col gap-2">
+                      {suggestedQuestions.map((question, index) => (
+                        <button
+                          key={question}
+                          onClick={() => handleSuggestedQuestion(question, index)}
+                          disabled={isLoading || !showSuggestions || isAtLimit}
+                          className={`w-full text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 text-left ${
+                            showSuggestions
+                              ? "opacity-70 hover:opacity-100 translate-y-0"
+                              : "opacity-0 translate-y-2"
+                          }`}
+                          style={{
+                            transitionDelay: showSuggestions
+                              ? `${index * 500}ms`
+                              : "0ms",
+                          }}
+                        >
+                          {question}
+                        </button>
+                      ))}
+                    </div>
+
+                    {renderInput()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop/tablet: centered stack (original layout) */}
+            <div className="hidden sm:flex flex-col items-center justify-start h-full overflow-y-auto p-4 pt-[30vh]">
+              <div className="w-full max-w-3xl flex flex-col items-center pb-8">
+                <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl text-zinc-100 text-center mb-6 sm:mb-8 leading-tight">
                   I&apos;m an AI model trained
                   <br />
                   on the{" "}
@@ -425,36 +471,29 @@ export function ChatInterface() {
                     Epstein files.
                   </span>
                 </h1>
-              </div>
-            </div>
 
-            {/* Bottom composer (suggestions above input) */}
-            <div className="w-full px-6 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-              <div className="mx-auto max-w-3xl w-full">
-                <div className="w-full flex flex-col items-stretch gap-3">
-                  <div className="w-full flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-2 sm:justify-center">
-                    {suggestedQuestions.map((question, index) => (
-                      <button
-                        key={question}
-                        onClick={() => handleSuggestedQuestion(question, index)}
-                        disabled={isLoading || !showSuggestions || isAtLimit}
-                        className={`w-full sm:w-auto text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 text-left sm:text-center ${
-                          showSuggestions
-                            ? "opacity-70 hover:opacity-100 translate-y-0"
-                            : "opacity-0 translate-y-2"
-                        }`}
-                        style={{
-                          transitionDelay: showSuggestions
-                            ? `${index * 500}ms`
-                            : "0ms",
-                        }}
-                      >
-                        {question}
-                      </button>
-                    ))}
-                  </div>
+                <div className="w-full mb-4">{renderInput()}</div>
 
-                  {renderInput()}
+                <div className="w-full flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+                  {suggestedQuestions.map((question, index) => (
+                    <button
+                      key={question}
+                      onClick={() => handleSuggestedQuestion(question, index)}
+                      disabled={isLoading || !showSuggestions || isAtLimit}
+                      className={`text-xs sm:text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 ${
+                        showSuggestions
+                          ? "opacity-70 hover:opacity-100 translate-y-0"
+                          : "opacity-0 translate-y-2"
+                      }`}
+                      style={{
+                        transitionDelay: showSuggestions
+                          ? `${index * 500}ms`
+                          : "0ms",
+                      }}
+                    >
+                      {question}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
