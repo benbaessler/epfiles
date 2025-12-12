@@ -41,20 +41,27 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
 
   return (
     <Popover.Root>
-      <Popover.Trigger className="group relative flex items-center gap-3 rounded-lg cursor-pointer overflow-hidden w-full hover:bg-zinc-700/50 p-2">
-        <div className="relative h-8 w-8 rounded-full overflow-hidden shrink-0">
-          {user.imageUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={user.imageUrl}
-              alt="Profile"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full bg-[#1c1c24] flex items-center justify-center">
-              <User className="h-5 w-5 text-zinc-400" />
-            </div>
-          )}
+      <Popover.Trigger
+        className={cn(
+          "group relative flex items-center rounded-lg cursor-pointer overflow-hidden hover:bg-zinc-700/50 transition-[width] duration-300 px-0 justify-start h-10",
+          collapsed ? "w-10" : "w-full"
+        )}
+      >
+        <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+          <div className="relative h-7 w-7 rounded-full overflow-hidden">
+            {user.imageUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={user.imageUrl}
+                alt="Profile"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full bg-[#1c1c24] flex items-center justify-center">
+                <User className="h-5 w-5 text-zinc-400" />
+              </div>
+            )}
+          </div>
         </div>
         <div
           className={cn(
@@ -63,12 +70,12 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
           )}
         >
           <span className="text-sm text-zinc-200 font-medium truncate max-w-[180px]">
-            {user.username || 
-             (user.firstName || user.lastName 
-               ? `${user.firstName || ""} ${user.lastName || ""}`.trim() 
-               : null) || 
-             user.emailAddresses[0]?.emailAddress || 
-             "User"}
+            {user.username ||
+              (user.firstName || user.lastName
+                ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                : null) ||
+              user.emailAddresses[0]?.emailAddress ||
+              "User"}
           </span>
           <span className="text-sm text-zinc-500 truncate max-w-[180px]">
             {subscriptionPlan} Plan
@@ -78,26 +85,26 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
 
       <Popover.Portal>
         <Popover.Positioner side="top" sideOffset={12} align="start">
-          <Popover.Popup className="bg-[#1c1c24] border border-[#3a3a4a] rounded-lg shadow-xl shadow-black/50 py-1.5 px-1 w-[var(--anchor-width)] z-50">
+          <Popover.Popup className="bg-[#1c1c24] border border-[#3a3a4a] rounded-lg shadow-xl shadow-black/50 py-1.5 px-1 min-w-[200px] z-50">
             <button
               onClick={() => router.push("/billing")}
-              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer whitespace-nowrap"
             >
-              <CircleFadingArrowUp className="h-5 w-5 text-zinc-400" />
+              <CircleFadingArrowUp className="h-5 w-5 text-zinc-400 shrink-0" />
               Upgrade plan
             </button>
             <button
               onClick={() => router.push("/legal")}
-              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer whitespace-nowrap"
             >
-              <FileText className="h-5 w-5 text-zinc-400" />
+              <FileText className="h-5 w-5 text-zinc-400 shrink-0" />
               Terms & policies
             </button>
             <button
               onClick={() => signOut()}
-              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer whitespace-nowrap"
             >
-              <LogOut className="h-5 w-5 text-zinc-400" />
+              <LogOut className="h-5 w-5 text-zinc-400 shrink-0" />
               Log out
             </button>
           </Popover.Popup>
