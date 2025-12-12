@@ -5,6 +5,20 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 
+function XLogo({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 1200 1227"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.854V687.828Z" />
+    </svg>
+  );
+}
+
 export default function BillingPage() {
   const router = useRouter();
 
@@ -23,7 +37,7 @@ export default function BillingPage() {
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-start sm:justify-center overflow-y-auto px-4 sm:px-6 py-8 sm:py-12">
+          <div className="flex-1 flex flex-col items-center justify-start overflow-y-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-28">
             <h1 className="font-[family-name:var(--font-libre-baskerville)] text-2xl sm:text-3xl text-zinc-100 text-center mb-6 sm:mb-8">
               Upgrade your plan
             </h1>
@@ -37,6 +51,24 @@ export default function BillingPage() {
                 }}
               />
             </div>
+          </div>
+
+          <div className="pointer-events-none absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+            <div className="text-zinc-400 text-sm">
+              Built by{" "}
+              <span className="font-[family-name:var(--font-libre-baskerville)] italic">
+                Ben Bassler
+              </span>
+            </div>
+            <a
+              className="pointer-events-auto opacity-65 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 transition-opacity"
+              href="https://x.com/basslerben"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open Ben Bassler on X"
+            >
+              <XLogo className="h-5 w-5" />
+            </a>
           </div>
         </div>
       </div>
