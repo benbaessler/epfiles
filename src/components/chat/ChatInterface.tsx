@@ -166,12 +166,17 @@ export function ChatInterface() {
   };
 
   const handleInput = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
+    const nextValue = e.target.value;
+    setInput(nextValue);
+
+    // Keep the composer single-line unless the user explicitly inserts a newline.
+    // We also disable wrapping (wrap="off") so long text scrolls horizontally
+    // instead of growing vertically.
     if (textareaRef.current) {
       textareaRef.current.style.height = "40px";
-      const scrollHeight = textareaRef.current.scrollHeight;
-      if (scrollHeight > 40) {
-        textareaRef.current.style.height = `${scrollHeight}px`;
+      if (nextValue.includes("\n")) {
+        const scrollHeight = textareaRef.current.scrollHeight;
+        textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
       }
     }
   };
@@ -343,34 +348,32 @@ export function ChatInterface() {
     }
 
     return (
-      <div className="relative flex flex-col p-2 pb-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
-        <div className="flex-1 min-h-[40px] flex items-center">
-          <textarea
-            ref={textareaRef}
-            className="w-full bg-transparent border-0 focus:ring-0 p-2 pl-3 pr-14 sm:pr-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-y-auto leading-normal"
-            placeholder="Ask me anything..."
-            rows={1}
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            style={{ height: "40px" }}
-            disabled={isLoading}
-          />
-        </div>
-        <div className="flex justify-end mt-1">
-          <Button
-            size="icon"
-            className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-            ) : (
-              <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
-            )}
-          </Button>
-        </div>
+      <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
+        <textarea
+          ref={textareaRef}
+          className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-x-auto overflow-y-auto leading-normal"
+          placeholder="Ask me anything..."
+          rows={1}
+          value={input}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          style={{ height: "40px" }}
+          disabled={isLoading}
+          wrap="off"
+        />
+
+        <Button
+          size="icon"
+          className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleSend}
+          disabled={!input.trim() || isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+          ) : (
+            <ArrowUp className="h-4 w-4 sm:h-6 sm:w-6" />
+          )}
+        </Button>
       </div>
     );
   };
@@ -410,37 +413,49 @@ export function ChatInterface() {
         )}
 
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-start h-full overflow-y-auto p-4 pt-[20vh] sm:pt-[30vh]">
-            <div className="w-full max-w-3xl flex flex-col items-center pb-8">
-              <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl text-zinc-100 text-center mb-6 sm:mb-8 leading-tight">
-                I&apos;m an AI model trained
-                <br />
-                on the{" "}
-                <span className="bg-[#8C5716] text-white px-2 py-1">
-                  Epstein files.
-                </span>
-              </h1>
+          <div className="flex flex-col h-full min-h-[100dvh] overflow-hidden">
+            {/* Center title */}
+            <div className="flex-1 flex items-center justify-center px-6 pt-20 pb-8">
+              <div className="w-full max-w-3xl flex flex-col items-center">
+                <h1 className="font-serif text-3xl sm:text-3xl md:text-4xl text-zinc-100 text-center leading-tight">
+                  I&apos;m an AI model trained
+                  <br />
+                  on the{" "}
+                  <span className="bg-[#8C5716] text-white px-2 py-1">
+                    Epstein files.
+                  </span>
+                </h1>
+              </div>
+            </div>
 
-              <div className="w-full mb-4">{renderInput()}</div>
+            {/* Bottom composer (suggestions above input) */}
+            <div className="w-full px-6 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <div className="mx-auto max-w-3xl w-full">
+                <div className="w-full flex flex-col items-stretch gap-3">
+                  <div className="w-full flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-2 sm:justify-center">
+                    {suggestedQuestions.map((question, index) => (
+                      <button
+                        key={question}
+                        onClick={() => handleSuggestedQuestion(question, index)}
+                        disabled={isLoading || !showSuggestions || isAtLimit}
+                        className={`w-full sm:w-auto text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 text-left sm:text-center ${
+                          showSuggestions
+                            ? "opacity-70 hover:opacity-100 translate-y-0"
+                            : "opacity-0 translate-y-2"
+                        }`}
+                        style={{
+                          transitionDelay: showSuggestions
+                            ? `${index * 500}ms`
+                            : "0ms",
+                        }}
+                      >
+                        {question}
+                      </button>
+                    ))}
+                  </div>
 
-              <div className="w-full flex flex-wrap gap-1.5 sm:gap-2 justify-center">
-                {suggestedQuestions.map((question, index) => (
-                  <button
-                    key={question}
-                    onClick={() => handleSuggestedQuestion(question, index)}
-                    disabled={isLoading || !showSuggestions || isAtLimit}
-                    className={`text-xs sm:text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 ${
-                      showSuggestions
-                        ? "opacity-70 hover:opacity-100 translate-y-0"
-                        : "opacity-0 translate-y-2"
-                    }`}
-                    style={{
-                      transitionDelay: showSuggestions ? `${index * 500}ms` : "0ms",
-                    }}
-                  >
-                    {question}
-                  </button>
-                ))}
+                  {renderInput()}
+                </div>
               </div>
             </div>
           </div>
@@ -467,7 +482,7 @@ export function ChatInterface() {
             </div>
 
             {/* Input Area */}
-            <div className="p-3 sm:p-4 pb-4 sm:pb-6">
+            <div className="px-6 py-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6">
               <div className="mx-auto max-w-3xl">{renderInput()}</div>
             </div>
           </>

@@ -44,7 +44,12 @@ export function MessageBubble({ message }: { message: Message }) {
   };
 
   return (
-    <div className={cn("flex w-full px-2 sm:px-4 py-2", isUser ? "justify-end" : "justify-start")}>
+    <div
+      className={cn(
+        "flex w-full px-5 sm:px-4 py-2",
+        isUser ? "justify-end" : "justify-start"
+      )}
+    >
       <div 
         className={cn(
           "max-w-[90%] sm:max-w-[80%] rounded-lg px-3 sm:px-4 py-3 leading-relaxed",
