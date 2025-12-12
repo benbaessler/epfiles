@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
 from typing import Literal
+import json
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
@@ -31,7 +33,54 @@ class Settings(BaseSettings):
     # API Settings
     api_title: str = "Epstein Files RAG API"
     api_version: str = "1.0.0"
-    cors_origins: list = ["http://localhost:3000", "https://yourdomain.com"]
+    
+    # Environment mode: "development" or "production"
+    app_env: Literal["development", "production"] = "development"
+    
+    # CORS origins - set via CORS_ORIGINS env var as JSON array in production
+    # e.g. CORS_ORIGINS='["https://yourapp.com"]'
+    cors_origins: list[str] = []
+    
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS_ORIGINS from JSON string if provided."""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                raise ValueError("CORS_ORIGINS must be a valid JSON array")
+        return v
+    
+    def get_cors_origins(self) -> list[str]:
+        """
+        Return CORS origins based on environment.
+        - Development: allows localhost:3000
+        - Production: requires explicit CORS_ORIGINS, rejects unsafe placeholders
+        """
+        if self.app_env == "development":
+            if not self.cors_origins:
+                return ["http://localhost:3000"]
+            return self.cors_origins
+        
+        # Production mode
+        if not self.cors_origins:
+            raise ValueError(
+                "CORS_ORIGINS must be set in production. "
+                "Set CORS_ORIGINS='[\"https://your-domain.com\"]' as a JSON array."
+            )
+        
+        # Reject unsafe placeholder origins in production
+        unsafe_patterns = ["localhost", "yourdomain.com", "127.0.0.1"]
+        for origin in self.cors_origins:
+            for pattern in unsafe_patterns:
+                if pattern in origin.lower():
+                    raise ValueError(
+                        f"Unsafe CORS origin '{origin}' not allowed in production. "
+                        "Remove localhost/placeholder domains from CORS_ORIGINS."
+                    )
+        
+        return self.cors_origins
 
     class Config:
         env_file = ".env"

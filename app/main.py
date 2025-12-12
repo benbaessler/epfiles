@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Tuple
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
@@ -88,7 +88,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=settings.get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -96,9 +96,9 @@ app.add_middleware(
 
 # Request/Response models
 class QueryRequest(BaseModel):
-    query: str
-    top_k: int = 5
-    session_id: str = None  # Optional session ID for conversation continuity
+    query: str = Field(..., min_length=1, max_length=10000)
+    top_k: int = Field(default=5, ge=1, le=20)
+    session_id: str | None = Field(default=None, max_length=100)  # UUID format
 
 class Source(BaseModel):
     chunk_id: str
