@@ -9,12 +9,22 @@ const TRIAL_USED_KEY = "epfiles_trial_used";
 // Track openSignIn calls
 const mockOpenSignIn = vi.fn();
 
-// Mock Clerk - signed out user
+type MockUserState = {
+  isSignedIn: boolean | undefined;
+  isLoaded: boolean;
+};
+
+let mockUserState: MockUserState = {
+  isSignedIn: false,
+  isLoaded: true,
+};
+
+// Mock Clerk - configurable user state
 vi.mock("@clerk/nextjs", () => ({
   useUser: () => ({
-    isSignedIn: false,
+    isSignedIn: mockUserState.isSignedIn,
     user: null,
-    isLoaded: true,
+    isLoaded: mockUserState.isLoaded,
   }),
   useClerk: () => ({
     openSignIn: mockOpenSignIn,
@@ -70,6 +80,7 @@ describe("ChatInterface - Trial Flow (Anonymous User)", () => {
   beforeEach(() => {
     localStorage.clear();
     mockOpenSignIn.mockClear();
+    mockUserState = { isSignedIn: false, isLoaded: true };
   });
 
   afterEach(() => {
@@ -87,6 +98,36 @@ describe("ChatInterface - Trial Flow (Anonymous User)", () => {
       const textarea = getTextarea();
       expect(textarea).toBeInTheDocument();
       expect(textarea.getAttribute("placeholder")).toBe("Ask me anything...");
+    });
+
+    it("should not treat Clerk loading state as anonymous", async () => {
+      mockUserState = { isSignedIn: undefined, isLoaded: false };
+
+      let trialEndpointCalled = false;
+
+      server.use(
+        http.post("/api/query/trial", async () => {
+          trialEndpointCalled = true;
+          return HttpResponse.json(mockTrialQueryResponse);
+        })
+      );
+
+      const { ChatInterface } = await import("@/components/chat/ChatInterface");
+
+      render(<ChatInterface />);
+
+      const textarea = getTextarea();
+      await userEvent.type(textarea, "Test question");
+
+      const sendButton = getSendButton();
+      expect(sendButton).toBeDefined();
+      await userEvent.click(sendButton!);
+
+      // Give async handlers time; nothing should fire while Clerk is loading.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(trialEndpointCalled).toBe(false);
+      expect(mockOpenSignIn).not.toHaveBeenCalled();
     });
 
     it("should call trial endpoint when anonymous user sends first message", async () => {
