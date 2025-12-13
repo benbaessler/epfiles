@@ -46,25 +46,7 @@ function createRateLimitKey(ip: string): string {
 export async function POST(request: NextRequest) {
   const ip = getClientIP(request);
 
-  // Atomic rate limiting - INCR first, then check
-  const rateLimitKey = createRateLimitKey(ip);
-  const requestCount = await redis.incr(rateLimitKey);
-
-  // Set TTL only when key is first created (fixed window, not sliding)
-  if (requestCount === 1) {
-    await redis.expire(rateLimitKey, ANON_RATE_LIMIT_TTL_SECONDS);
-  }
-
-  if (requestCount > ANON_RATE_LIMIT_PER_HOUR) {
-    return NextResponse.json(
-      {
-        error: "rate_limited",
-        message: "Too many requests. Please try again later.",
-      },
-      { status: 429 }
-    );
-  }
-
+  // Parse and validate body first (needed for fingerprint before trial check)
   let body: { query: string; fingerprint?: string; top_k?: number };
   try {
     body = await request.json();
@@ -90,13 +72,48 @@ export async function POST(request: NextRequest) {
     ? createTrialKeyFromFingerprint(fingerprint)
     : createTrialKeyFromIP(ip);
 
+  // Check trial status BEFORE rate limiting to avoid consuming rate limit
+  // budget for users whose trial is already exhausted
+  const trialExists = await redis.exists(trialKey);
+  if (trialExists) {
+    return NextResponse.json(
+      {
+        error: "trial_exhausted",
+        message: "Sign up to continue using the service.",
+      },
+      { status: 403 }
+    );
+  }
+
+  // Rate limit only after confirming trial is available
+  const rateLimitKey = createRateLimitKey(ip);
+  const requestCount = await redis.incr(rateLimitKey);
+
+  // Set TTL only when key is first created (fixed window, not sliding)
+  if (requestCount === 1) {
+    await redis.expire(rateLimitKey, ANON_RATE_LIMIT_TTL_SECONDS);
+  }
+
+  if (requestCount > ANON_RATE_LIMIT_PER_HOUR) {
+    return NextResponse.json(
+      {
+        error: "rate_limited",
+        message: "Too many requests. Please try again later.",
+      },
+      { status: 429 }
+    );
+  }
+
   // Atomically claim trial slot using SETNX to prevent TOCTOU race condition
   const claimed = await redis.set(trialKey, Date.now(), {
     nx: true,
     ex: TRIAL_TTL_SECONDS,
   });
 
+  // Handle race condition: another request claimed the trial between EXISTS and SET
   if (claimed === null) {
+    // Reverse the rate limit increment since we didn't actually process the request
+    await redis.decr(rateLimitKey);
     return NextResponse.json(
       {
         error: "trial_exhausted",
