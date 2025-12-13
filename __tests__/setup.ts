@@ -75,6 +75,13 @@ export const mockQueryResponse = {
   session_id: "new-session-id",
 };
 
+// Mock trial query response
+export const mockTrialQueryResponse = {
+  ...mockQueryResponse,
+  session_id: "trial-session-id",
+  is_trial: true,
+};
+
 // MSW handlers for API mocking
 export const handlers = [
   // GET /api/conversations
@@ -117,6 +124,11 @@ export const handlers = [
   // POST /api/query
   http.post("/api/query", () => {
     return HttpResponse.json(mockQueryResponse);
+  }),
+
+  // POST /api/query/trial
+  http.post("/api/query/trial", () => {
+    return HttpResponse.json(mockTrialQueryResponse);
   }),
 ];
 
@@ -180,6 +192,7 @@ vi.mock("next/navigation", () => ({
   usePathname: vi.fn(() => "/"),
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
+
 
 
 

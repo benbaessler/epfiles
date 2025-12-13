@@ -1,9 +1,12 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   fetchConversations,
   fetchMessages,
   sendQuery,
+  sendTrialQuery,
   deleteConversation,
+  TrialExhaustedError,
+  RateLimitedError,
 } from "@/lib/api";
 import { server } from "../../setup";
 import { http, HttpResponse } from "msw";
@@ -11,6 +14,7 @@ import {
   mockConversations,
   mockMessages,
   mockQueryResponse,
+  mockTrialQueryResponse,
 } from "../../setup";
 
 describe("API Client", () => {
@@ -152,7 +156,141 @@ describe("API Client", () => {
       );
     });
   });
+
+  describe("sendTrialQuery", () => {
+    it("should send a trial query and receive response with is_trial flag", async () => {
+      const response = await sendTrialQuery("Test trial question");
+
+      expect(response).toEqual(mockTrialQueryResponse);
+      expect(response.answer).toBe("Test answer from AI");
+      expect(response.is_trial).toBe(true);
+      expect(response.session_id).toBe("trial-session-id");
+    });
+
+    it("should send trial query with fingerprint", async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.post("/api/query/trial", async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(mockTrialQueryResponse);
+        })
+      );
+
+      await sendTrialQuery("Test question", "test-fingerprint-123");
+
+      expect(capturedBody).toMatchObject({
+        query: "Test question",
+        fingerprint: "test-fingerprint-123",
+        top_k: 5,
+      });
+    });
+
+    it("should send trial query without fingerprint when null", async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.post("/api/query/trial", async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(mockTrialQueryResponse);
+        })
+      );
+
+      await sendTrialQuery("Test question", null);
+
+      expect(capturedBody).toMatchObject({
+        query: "Test question",
+        top_k: 5,
+      });
+      expect(capturedBody).not.toHaveProperty("fingerprint");
+    });
+
+    it("should send trial query with custom topK", async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.post("/api/query/trial", async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(mockTrialQueryResponse);
+        })
+      );
+
+      await sendTrialQuery("Test question", "fp", 10);
+
+      expect(capturedBody).toMatchObject({
+        query: "Test question",
+        fingerprint: "fp",
+        top_k: 10,
+      });
+    });
+
+    it("should throw TrialExhaustedError when trial is exhausted", async () => {
+      server.use(
+        http.post("/api/query/trial", () => {
+          return HttpResponse.json(
+            {
+              error: "trial_exhausted",
+              message: "Sign up to continue using the service.",
+            },
+            { status: 403 }
+          );
+        })
+      );
+
+      await expect(sendTrialQuery("Test")).rejects.toThrow(TrialExhaustedError);
+      await expect(sendTrialQuery("Test")).rejects.toThrow(
+        "Sign up to continue using the service."
+      );
+    });
+
+    it("should throw RateLimitedError when rate limited", async () => {
+      server.use(
+        http.post("/api/query/trial", () => {
+          return HttpResponse.json(
+            {
+              error: "rate_limited",
+              message: "Too many requests. Please try again later.",
+            },
+            { status: 429 }
+          );
+        })
+      );
+
+      await expect(sendTrialQuery("Test")).rejects.toThrow(RateLimitedError);
+      await expect(sendTrialQuery("Test")).rejects.toThrow(
+        "Too many requests. Please try again later."
+      );
+    });
+
+    it("should throw generic error for other failures", async () => {
+      server.use(
+        http.post("/api/query/trial", () => {
+          return HttpResponse.json(
+            { message: "Internal server error" },
+            { status: 500 }
+          );
+        })
+      );
+
+      await expect(sendTrialQuery("Test")).rejects.toThrow(
+        "Internal server error"
+      );
+    });
+
+    it("should throw fallback error when no message available", async () => {
+      server.use(
+        http.post("/api/query/trial", () => {
+          return HttpResponse.json({}, { status: 500 });
+        })
+      );
+
+      await expect(sendTrialQuery("Test")).rejects.toThrow(
+        "Failed to send query"
+      );
+    });
+  });
 });
+
 
 
 
