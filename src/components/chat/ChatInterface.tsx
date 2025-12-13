@@ -20,18 +20,25 @@ import {
   fetchConversations,
   fetchMessages,
   sendQuery,
+  sendTrialQuery,
   deleteConversation,
   fetchUsage,
   UsageLimitExceededError,
+  TrialExhaustedError,
+  RateLimitedError,
   type Conversation,
   type ApiMessage,
   type UsageStats,
 } from "@/lib/api";
+import { useFingerprint } from "@/lib/fingerprint";
+
+const TRIAL_USED_KEY = "epfiles_trial_used";
 
 export function ChatInterface() {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   const posthog = usePostHog();
+  const fingerprint = useFingerprint();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +57,12 @@ export function ChatInterface() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [trialExhausted, setTrialExhausted] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(TRIAL_USED_KEY) === "true";
+    }
+    return false;
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -208,17 +221,23 @@ export function ChatInterface() {
       textareaRef.current.style.height = "40px";
     }
 
+    const isTrial = !isSignedIn;
+
     posthog.capture("query_sent", {
       session_id: sessionId,
       is_new_conversation: isNewConversation,
+      is_trial: isTrial,
       query_length: messageContent.length,
     });
 
     try {
-      const data = await sendQuery(messageContent, sessionId);
+      // Use trial endpoint for anonymous users, regular endpoint for signed-in users
+      const data = isTrial
+        ? await sendTrialQuery(messageContent, fingerprint)
+        : await sendQuery(messageContent, sessionId);
 
-      // Store session ID from response
-      if (data.session_id && !sessionId) {
+      // Store session ID from response (only for authenticated users)
+      if (!isTrial && data.session_id && !sessionId) {
         setSessionId(data.session_id);
       }
 
@@ -237,16 +256,42 @@ export function ChatInterface() {
 
       posthog.capture("query_success", {
         session_id: data.session_id,
+        is_trial: isTrial,
         sources_count: data.sources?.length ?? 0,
         tokens_used: data.usage?.total_tokens ?? 0,
       });
 
-      // Refresh conversations list to show the new/updated conversation
-      loadConversations();
+      // Mark trial as used after successful response
+      if (isTrial) {
+        localStorage.setItem(TRIAL_USED_KEY, "true");
+        setTrialExhausted(true);
+        posthog.capture("trial_used");
+      } else {
+        // Refresh conversations list to show the new/updated conversation
+        loadConversations();
+      }
     } catch (err) {
       console.error("Failed to send message:", err);
 
-      if (err instanceof UsageLimitExceededError) {
+      if (err instanceof TrialExhaustedError) {
+        posthog.capture("trial_exhausted");
+        localStorage.setItem(TRIAL_USED_KEY, "true");
+        setTrialExhausted(true);
+        // Remove the user message we optimistically added
+        setMessages((prev) => prev.slice(0, -1));
+      } else if (err instanceof RateLimitedError) {
+        posthog.capture("rate_limited", { is_trial: isTrial });
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Too many requests. Please wait a moment and try again.",
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      } else if (err instanceof UsageLimitExceededError) {
         posthog.capture("usage_limit_hit", {
           tier: err.tier,
           current: err.current,
@@ -265,6 +310,7 @@ export function ChatInterface() {
         posthog.capture("query_error", {
           error_type: err instanceof Error ? err.name : "unknown",
           session_id: sessionId,
+          is_trial: isTrial,
         });
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -286,7 +332,8 @@ export function ChatInterface() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    if (!isSignedIn) {
+    // If not signed in and trial is exhausted, prompt sign-in
+    if (!isSignedIn && trialExhausted) {
       setPendingMessage(input.trim());
       openSignIn();
       return;
@@ -304,6 +351,13 @@ export function ChatInterface() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, pendingMessage]);
 
+  // Clear trial exhausted state when user signs in
+  useEffect(() => {
+    if (isSignedIn) {
+      setTrialExhausted(false);
+    }
+  }, [isSignedIn]);
+
   const suggestedQuestions = [
     "Did Donald Trump know about Epstein's conduct?",
     "Who appears most frequently in the flight logs between 1999 and 2003?",
@@ -318,7 +372,8 @@ export function ChatInterface() {
       question_index: index,
     });
 
-    if (!isSignedIn) {
+    // If not signed in and trial is exhausted, prompt sign-in
+    if (!isSignedIn && trialExhausted) {
       setPendingMessage(question);
       openSignIn();
       return;
@@ -352,7 +407,11 @@ export function ChatInterface() {
         <textarea
           ref={textareaRef}
           className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-x-auto overflow-y-auto leading-normal"
-          placeholder="Ask me anything..."
+          placeholder={
+            !isSignedIn && trialExhausted
+              ? "Sign in to or continue..."
+              : "Ask me anything..."
+          }
           rows={1}
           value={input}
           onChange={handleInput}
