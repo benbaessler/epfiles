@@ -28,10 +28,14 @@ function getClientIP(request: NextRequest): string {
   return "unknown";
 }
 
-function createTrialKey(ip: string, fingerprint?: string): string {
-  const data = fingerprint ? `${ip}:${fingerprint}` : ip;
-  const hash = createHash("sha256").update(data).digest("hex").slice(0, 32);
-  return `trial:${hash}`;
+function createTrialKeyFromIP(ip: string): string {
+  const hash = createHash("sha256").update(ip).digest("hex").slice(0, 32);
+  return `trial:ip:${hash}`;
+}
+
+function createTrialKeyFromFingerprint(ip: string, fingerprint: string): string {
+  const hash = createHash("sha256").update(`${ip}:${fingerprint}`).digest("hex").slice(0, 32);
+  return `trial:fp:${hash}`;
 }
 
 function createRateLimitKey(ip: string): string {
@@ -74,11 +78,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Create trial key from IP + optional fingerprint
-  const trialKey = createTrialKey(ip, fingerprint);
+  // Create trial keys - always check IP-based key to prevent timing attack
+  // where user sends query before fingerprint loads, then again after
+  const ipKey = createTrialKeyFromIP(ip);
+  const fpKey = fingerprint ? createTrialKeyFromFingerprint(ip, fingerprint) : null;
 
-  // Check if trial has been used
-  const trialUsed = await redis.exists(trialKey);
+  // Check if any trial key has been used
+  const keysToCheck = fpKey ? [ipKey, fpKey] : [ipKey];
+  const existsResults = await Promise.all(keysToCheck.map(k => redis.exists(k)));
+  const trialUsed = existsResults.some(exists => exists === 1);
 
   if (trialUsed) {
     return NextResponse.json(
@@ -102,7 +110,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-User-Id": `anon:${trialKey}`,
+        "X-User-Id": `anon:${ipKey}`,
         "X-User-Tier": "trial",
       },
       body: JSON.stringify({ query, top_k }),
@@ -115,7 +123,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark trial as used only after successful response
-    await redis.set(trialKey, Date.now(), { ex: TRIAL_TTL_SECONDS });
+    // Mark both IP key and fingerprint key (if available) to prevent timing attack
+    const markPipeline = redis.pipeline();
+    markPipeline.set(ipKey, Date.now(), { ex: TRIAL_TTL_SECONDS });
+    if (fpKey) {
+      markPipeline.set(fpKey, Date.now(), { ex: TRIAL_TTL_SECONDS });
+    }
+    await markPipeline.exec();
 
     return NextResponse.json({
       ...data,
