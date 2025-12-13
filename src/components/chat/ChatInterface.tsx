@@ -290,7 +290,8 @@ export function ChatInterface() {
             minute: "2-digit",
           }),
         };
-        setMessages((prev) => [...prev, errorMessage]);
+        // Rate limiting happens before backend processing; remove optimistic user message.
+        setMessages((prev) => [...prev.slice(0, -1), errorMessage]);
       } else if (err instanceof UsageLimitExceededError) {
         posthog.capture("usage_limit_hit", {
           tier: err.tier,
@@ -409,7 +410,7 @@ export function ChatInterface() {
           className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-x-auto overflow-y-auto leading-normal"
           placeholder={
             !isSignedIn && trialExhausted
-              ? "Sign in to or continue..."
+              ? "Sign in to continue..."
               : "Ask me anything..."
           }
           rows={1}

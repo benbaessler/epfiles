@@ -245,5 +245,44 @@ describe("ChatInterface - Trial Flow (Anonymous User)", () => {
         { timeout: 3000 }
       );
     });
+
+    it("should remove optimistic user message on rate limited error", async () => {
+      server.use(
+        http.post("/api/query/trial", async () => {
+          // Give React a moment to render optimistic user message before error response.
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return HttpResponse.json(
+            {
+              error: "rate_limited",
+              message: "Too many requests. Please try again later.",
+            },
+            { status: 429 }
+          );
+        })
+      );
+
+      const { ChatInterface } = await import("@/components/chat/ChatInterface");
+
+      render(<ChatInterface />);
+
+      const textarea = getTextarea();
+      await userEvent.type(textarea, "Test question");
+
+      const sendButton = getSendButton();
+      await userEvent.click(sendButton!);
+
+      // Optimistic message should be added.
+      await waitFor(() => {
+        expect(screen.getByText("Test question")).toBeInTheDocument();
+      });
+
+      // After rate limit handling, user message should be removed and assistant error shown.
+      await waitFor(() => {
+        expect(
+          screen.getByText("Too many requests. Please wait a moment and try again.")
+        ).toBeInTheDocument();
+        expect(screen.queryByText("Test question")).not.toBeInTheDocument();
+      });
+    });
   });
 });
