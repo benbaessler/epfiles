@@ -39,7 +39,8 @@ function createTrialKeyFromFingerprint(ip: string, fingerprint: string): string 
 }
 
 function createRateLimitKey(ip: string): string {
-  return `ratelimit:anon:${ip}`;
+  const hash = createHash("sha256").update(ip).digest("hex").slice(0, 32);
+  return `ratelimit:anon:${hash}`;
 }
 
 export async function POST(request: NextRequest) {
