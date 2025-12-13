@@ -35,7 +35,7 @@ import { useFingerprint } from "@/lib/fingerprint";
 const TRIAL_USED_KEY = "epfiles_trial_used";
 
 export function ChatInterface() {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
   const { openSignIn } = useClerk();
   const posthog = usePostHog();
   const fingerprint = useFingerprint();
@@ -202,6 +202,10 @@ export function ChatInterface() {
   };
 
   const sendMessage = async (messageContent: string) => {
+    // Treat Clerk loading state as neither anonymous nor authenticated.
+    // Avoid routing signed-in users (who haven't finished loading) through trial endpoints.
+    if (!isLoaded) return;
+
     const isNewConversation = !sessionId;
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -332,6 +336,7 @@ export function ChatInterface() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    if (!isLoaded) return;
 
     // If not signed in and trial is exhausted, prompt sign-in
     if (!isSignedIn && trialExhausted) {
@@ -345,12 +350,12 @@ export function ChatInterface() {
 
   // Send pending message after user signs in
   useEffect(() => {
-    if (isSignedIn && pendingMessage) {
+    if (isLoaded && isSignedIn && pendingMessage) {
       sendMessage(pendingMessage);
       setPendingMessage(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSignedIn, pendingMessage]);
+  }, [isLoaded, isSignedIn, pendingMessage]);
 
   // Clear trial exhausted state when user signs in
   useEffect(() => {
@@ -368,6 +373,7 @@ export function ChatInterface() {
 
   const handleSuggestedQuestion = async (question: string, index: number) => {
     if (isLoading || isAtLimit) return;
+    if (!isLoaded) return;
 
     posthog.capture("suggested_question_clicked", {
       question_index: index,
@@ -409,7 +415,7 @@ export function ChatInterface() {
           ref={textareaRef}
           className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-x-auto overflow-y-auto leading-normal"
           placeholder={
-            !isSignedIn && trialExhausted
+            isLoaded && !isSignedIn && trialExhausted
               ? "Sign in to continue..."
               : "Ask me anything..."
           }
