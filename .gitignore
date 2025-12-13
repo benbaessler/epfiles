@@ -43,3 +43,6 @@ next-env.d.ts
 
 # cursor
 .cursor/
+
+# data files
+src/data/gdrive-links.json
