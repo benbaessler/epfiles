@@ -83,12 +83,20 @@ export async function POST(request: NextRequest) {
   const ipKey = createTrialKeyFromIP(ip);
   const fpKey = fingerprint ? createTrialKeyFromFingerprint(ip, fingerprint) : null;
 
-  // Check if any trial key has been used
-  const keysToCheck = fpKey ? [ipKey, fpKey] : [ipKey];
-  const existsResults = await Promise.all(keysToCheck.map(k => redis.exists(k)));
-  const trialUsed = existsResults.some(exists => exists === 1);
+  // Atomically claim trial slot using SETNX to prevent TOCTOU race condition.
+  // Multiple concurrent requests would all pass an exists() check before any set the keys.
+  // Using nx: true ensures only the first request succeeds.
+  const claimPipeline = redis.pipeline();
+  claimPipeline.set(ipKey, Date.now(), { nx: true, ex: TRIAL_TTL_SECONDS });
+  if (fpKey) {
+    claimPipeline.set(fpKey, Date.now(), { nx: true, ex: TRIAL_TTL_SECONDS });
+  }
+  const claimResults = await claimPipeline.exec<(string | null)[]>();
 
-  if (trialUsed) {
+  // If any SETNX returned null, the key already existed (trial already used)
+  const trialAlreadyUsed = claimResults.some((result) => result === null);
+
+  if (trialAlreadyUsed) {
     return NextResponse.json(
       {
         error: "trial_exhausted",
@@ -99,10 +107,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Increment rate limit counter
-  const pipeline = redis.pipeline();
-  pipeline.incr(rateLimitKey);
-  pipeline.expire(rateLimitKey, ANON_RATE_LIMIT_TTL_SECONDS);
-  await pipeline.exec();
+  const rateLimitPipeline = redis.pipeline();
+  rateLimitPipeline.incr(rateLimitKey);
+  rateLimitPipeline.expire(rateLimitKey, ANON_RATE_LIMIT_TTL_SECONDS);
+  await rateLimitPipeline.exec();
 
   try {
     // Forward query to backend with anonymous user identifier
@@ -119,24 +127,30 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     if (!response.ok) {
+      // Backend error - release the trial slot so user can retry
+      const releasePipeline = redis.pipeline();
+      releasePipeline.del(ipKey);
+      if (fpKey) {
+        releasePipeline.del(fpKey);
+      }
+      await releasePipeline.exec();
       return NextResponse.json(data, { status: response.status });
     }
 
-    // Mark trial as used only after successful response
-    // Mark both IP key and fingerprint key (if available) to prevent timing attack
-    const markPipeline = redis.pipeline();
-    markPipeline.set(ipKey, Date.now(), { ex: TRIAL_TTL_SECONDS });
-    if (fpKey) {
-      markPipeline.set(fpKey, Date.now(), { ex: TRIAL_TTL_SECONDS });
-    }
-    await markPipeline.exec();
-
+    // Trial slot was already claimed atomically above, no additional marking needed
     return NextResponse.json({
       ...data,
       is_trial: true,
     });
   } catch (error) {
     console.error("Failed to process trial query:", error);
+    // Network/fetch error - release the trial slot so user can retry
+    const releasePipeline = redis.pipeline();
+    releasePipeline.del(ipKey);
+    if (fpKey) {
+      releasePipeline.del(fpKey);
+    }
+    await releasePipeline.exec();
     return NextResponse.json(
       { error: "Failed to process query" },
       { status: 500 }
