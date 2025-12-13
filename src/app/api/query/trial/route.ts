@@ -33,8 +33,8 @@ function createTrialKeyFromIP(ip: string): string {
   return `trial:ip:${hash}`;
 }
 
-function createTrialKeyFromFingerprint(ip: string, fingerprint: string): string {
-  const hash = createHash("sha256").update(`${ip}:${fingerprint}`).digest("hex").slice(0, 32);
+function createTrialKeyFromFingerprint(fingerprint: string): string {
+  const hash = createHash("sha256").update(fingerprint).digest("hex").slice(0, 32);
   return `trial:fp:${hash}`;
 }
 
@@ -46,11 +46,16 @@ function createRateLimitKey(ip: string): string {
 export async function POST(request: NextRequest) {
   const ip = getClientIP(request);
 
-  // Rate limiting check
+  // Atomic rate limiting - INCR first, then check
   const rateLimitKey = createRateLimitKey(ip);
-  const currentRequests = await redis.get<number>(rateLimitKey);
+  const requestCount = await redis.incr(rateLimitKey);
 
-  if (currentRequests && currentRequests >= ANON_RATE_LIMIT_PER_HOUR) {
+  // Set TTL only when key is first created (fixed window, not sliding)
+  if (requestCount === 1) {
+    await redis.expire(rateLimitKey, ANON_RATE_LIMIT_TTL_SECONDS);
+  }
+
+  if (requestCount > ANON_RATE_LIMIT_PER_HOUR) {
     return NextResponse.json(
       {
         error: "rate_limited",
@@ -79,25 +84,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Create trial keys - always check IP-based key to prevent timing attack
-  // where user sends query before fingerprint loads, then again after
-  const ipKey = createTrialKeyFromIP(ip);
-  const fpKey = fingerprint ? createTrialKeyFromFingerprint(ip, fingerprint) : null;
+  // Single trial key: fingerprint-preferred, IP as fallback
+  // This avoids the partial-claim bug and improves shared-network UX
+  const trialKey = fingerprint
+    ? createTrialKeyFromFingerprint(fingerprint)
+    : createTrialKeyFromIP(ip);
 
-  // Atomically claim trial slot using SETNX to prevent TOCTOU race condition.
-  // Multiple concurrent requests would all pass an exists() check before any set the keys.
-  // Using nx: true ensures only the first request succeeds.
-  const claimPipeline = redis.pipeline();
-  claimPipeline.set(ipKey, Date.now(), { nx: true, ex: TRIAL_TTL_SECONDS });
-  if (fpKey) {
-    claimPipeline.set(fpKey, Date.now(), { nx: true, ex: TRIAL_TTL_SECONDS });
-  }
-  const claimResults = await claimPipeline.exec<(string | null)[]>();
+  // Atomically claim trial slot using SETNX to prevent TOCTOU race condition
+  const claimed = await redis.set(trialKey, Date.now(), {
+    nx: true,
+    ex: TRIAL_TTL_SECONDS,
+  });
 
-  // If any SETNX returned null, the key already existed (trial already used)
-  const trialAlreadyUsed = claimResults.some((result) => result === null);
-
-  if (trialAlreadyUsed) {
+  if (claimed === null) {
     return NextResponse.json(
       {
         error: "trial_exhausted",
@@ -107,19 +106,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Increment rate limit counter
-  const rateLimitPipeline = redis.pipeline();
-  rateLimitPipeline.incr(rateLimitKey);
-  rateLimitPipeline.expire(rateLimitKey, ANON_RATE_LIMIT_TTL_SECONDS);
-  await rateLimitPipeline.exec();
-
   try {
     // Forward query to backend with anonymous user identifier
     const response = await fetch(`${BACKEND_URL}/api/query`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-User-Id": `anon:${ipKey}`,
+        "X-User-Id": `anon:${trialKey}`,
         "X-User-Tier": "trial",
       },
       body: JSON.stringify({ query, top_k }),
@@ -129,16 +122,10 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       // Backend error - release the trial slot so user can retry
-      const releasePipeline = redis.pipeline();
-      releasePipeline.del(ipKey);
-      if (fpKey) {
-        releasePipeline.del(fpKey);
-      }
-      await releasePipeline.exec();
+      await redis.del(trialKey);
       return NextResponse.json(data, { status: response.status });
     }
 
-    // Trial slot was already claimed atomically above, no additional marking needed
     return NextResponse.json({
       ...data,
       is_trial: true,
@@ -146,16 +133,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Failed to process trial query:", error);
     // Network/fetch error - release the trial slot so user can retry
-    const releasePipeline = redis.pipeline();
-    releasePipeline.del(ipKey);
-    if (fpKey) {
-      releasePipeline.del(fpKey);
-    }
-    await releasePipeline.exec();
+    await redis.del(trialKey);
     return NextResponse.json(
       { error: "Failed to process query" },
       { status: 500 }
     );
   }
 }
-
