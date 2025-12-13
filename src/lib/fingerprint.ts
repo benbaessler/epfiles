@@ -3,8 +3,26 @@
 import { useState, useEffect } from "react";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 
+const FALLBACK_STORAGE_KEY = "epfiles_fp_fallback";
+
 let cachedFingerprint: string | null = null;
 let fingerprintPromise: Promise<string> | null = null;
+
+function getPersistedFallback(): string | null {
+  try {
+    return localStorage.getItem(FALLBACK_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function persistFallback(fingerprint: string): void {
+  try {
+    localStorage.setItem(FALLBACK_STORAGE_KEY, fingerprint);
+  } catch {
+    // localStorage unavailable
+  }
+}
 
 async function loadFingerprint(): Promise<string> {
   if (cachedFingerprint) {
@@ -23,8 +41,14 @@ async function loadFingerprint(): Promise<string> {
       return cachedFingerprint;
     } catch (error) {
       console.error("Failed to generate fingerprint:", error);
-      // Return a fallback that includes some randomness
-      cachedFingerprint = `fallback-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      // Use persisted fallback if available, otherwise generate and persist
+      const existing = getPersistedFallback();
+      if (existing) {
+        cachedFingerprint = existing;
+      } else {
+        cachedFingerprint = `fallback-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        persistFallback(cachedFingerprint);
+      }
       return cachedFingerprint;
     }
   })();
