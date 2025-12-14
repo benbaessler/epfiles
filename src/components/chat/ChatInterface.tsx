@@ -430,14 +430,14 @@ export function ChatInterface() {
 
         <Button
           size="icon"
-          className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-10 w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleSend}
           disabled={!input.trim() || isLoading}
         >
           {isLoading ? (
-            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <ArrowUp className="h-4 w-4 sm:h-6 sm:w-6" />
+            <ArrowUp className="h-5 w-5" />
           )}
         </Button>
       </div>
