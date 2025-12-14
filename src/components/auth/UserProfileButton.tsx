@@ -43,7 +43,7 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
     <Popover.Root>
       <Popover.Trigger
         className={cn(
-          "group relative flex items-center rounded-lg cursor-pointer overflow-hidden hover:bg-zinc-700/50 transition-[width] duration-300 px-0 justify-start h-10",
+          "group relative flex items-center rounded-lg cursor-pointer overflow-hidden hover:bg-zinc-700/50 transition-[width] duration-300 justify-start h-[52px]",
           collapsed ? "w-10" : "w-full"
         )}
       >
