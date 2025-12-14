@@ -63,6 +63,7 @@ export function ChatInterface() {
     }
     return false;
   });
+  const [isMultiLine, setIsMultiLine] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -190,6 +191,9 @@ export function ChatInterface() {
       if (nextValue.includes("\n")) {
         const scrollHeight = textareaRef.current.scrollHeight;
         textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
+        setIsMultiLine(scrollHeight > 40);
+      } else {
+        setIsMultiLine(false);
       }
     }
   };
@@ -220,6 +224,7 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setIsMultiLine(false);
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "40px";
@@ -410,7 +415,11 @@ export function ChatInterface() {
     }
 
     return (
-      <div className="relative flex items-end gap-2 p-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600">
+      <div
+        className={`relative flex gap-2 p-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600 ${
+          isMultiLine ? "flex-col sm:flex-row sm:items-end" : "items-end"
+        }`}
+      >
         <textarea
           ref={textareaRef}
           className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-x-auto overflow-y-auto leading-normal"
@@ -430,7 +439,9 @@ export function ChatInterface() {
 
         <Button
           size="icon"
-          className="h-10 w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`h-10 w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+            isMultiLine ? "self-end sm:self-auto" : ""
+          }`}
           onClick={handleSend}
           disabled={!input.trim() || isLoading}
         >
@@ -507,11 +518,11 @@ export function ChatInterface() {
                           className={`w-full text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 text-left ${
                             showSuggestions
                               ? "opacity-70 hover:opacity-100 translate-y-0"
-                              : "opacity-0 translate-y-2"
+                              : "opacity-0 -translate-y-2"
                           }`}
                           style={{
                             transitionDelay: showSuggestions
-                              ? `${index * 500}ms`
+                              ? `${(suggestedQuestions.length - 1 - index) * 500}ms`
                               : "0ms",
                           }}
                         >
