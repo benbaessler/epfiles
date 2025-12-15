@@ -37,38 +37,40 @@ export default function BillingPage() {
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-start overflow-y-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-28">
-            <h1 className="font-[family-name:var(--font-libre-baskerville)] text-2xl sm:text-3xl text-zinc-100 text-center mb-6 sm:mb-8">
-              Upgrade your plan
-            </h1>
-            <div className="w-full max-w-6xl">
-              <PricingTable
-                appearance={{
-                  elements: {
-                    tableRoot: "flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center sm:items-start",
-                    planCard: "w-full sm:flex-1 max-w-sm",
-                  },
-                }}
-              />
-            </div>
-          </div>
+          <div className="flex-1 flex flex-col overflow-y-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-10">
+            <div className="flex-1 flex flex-col items-center min-h-full">
+              <h1 className="font-[family-name:var(--font-libre-baskerville)] text-2xl sm:text-3xl text-zinc-100 text-center mb-6 sm:mb-8">
+                Upgrade your plan
+              </h1>
+              <div className="w-full max-w-6xl">
+                <PricingTable
+                  appearance={{
+                    elements: {
+                      tableRoot: "flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center sm:items-start",
+                      planCard: "w-full sm:flex-1 max-w-sm",
+                    },
+                  }}
+                />
+              </div>
 
-          <div className="pointer-events-none absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
-            <div className="text-zinc-400 text-sm">
-              Built by{" "}
-              <span className="font-[family-name:var(--font-libre-baskerville)] italic">
-                Ben Bassler
-              </span>
+              <div className="flex flex-col items-center gap-3 mt-10 sm:mt-auto sm:pt-10">
+                <div className="text-zinc-400 text-sm">
+                  Built by{" "}
+                  <span className="font-[family-name:var(--font-libre-baskerville)] italic">
+                    Ben Bassler
+                  </span>
+                </div>
+                <a
+                  className="opacity-65 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 transition-opacity"
+                  href="https://x.com/basslerben"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Open Ben Bassler on X"
+                >
+                  <XLogo className="h-5 w-5" />
+                </a>
+              </div>
             </div>
-            <a
-              className="pointer-events-auto opacity-65 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 transition-opacity"
-              href="https://x.com/basslerben"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Open Ben Bassler on X"
-            >
-              <XLogo className="h-5 w-5" />
-            </a>
           </div>
         </div>
       </div>
