@@ -10,9 +10,6 @@ class RAGService:
     """Handles RAG operations: embedding queries, retrieving chunks, generating responses."""
 
     def __init__(self):
-        # #region agent log
-        import json as _json; open('/Users/benbassler/Documents/projects/jeffgpt/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"A,C,D","location":"rag_service.py:__init__","message":"Settings check","data":{"llm_provider":settings.llm_provider,"xai_api_key_set":bool(settings.xai_api_key),"xai_api_key_len":len(settings.xai_api_key) if settings.xai_api_key else 0},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-        # #endregion
         # OpenAI for embeddings and optionally LLM
         self.openai_client = OpenAI(api_key=settings.openai_api_key)
         # Groq for LLM inference (optional)
@@ -26,14 +23,8 @@ class RAGService:
                 api_key=settings.xai_api_key,
                 base_url="https://api.x.ai/v1"
             )
-            # #region agent log
-            open('/Users/benbassler/Documents/projects/jeffgpt/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"A","location":"rag_service.py:__init__","message":"xai_client initialized","data":{"client_type":str(type(self.xai_client))},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-            # #endregion
         else:
             self.xai_client = None
-            # #region agent log
-            open('/Users/benbassler/Documents/projects/jeffgpt/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"A","location":"rag_service.py:__init__","message":"xai_client NOT initialized (None)","data":{"reason":"condition failed"},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-            # #endregion
         # ChromaDB for vector storage
         self.chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
         # Use get_or_create_collection to avoid crashing if DB is missing/empty
