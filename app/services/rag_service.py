@@ -132,6 +132,7 @@ class RAGService:
         return {
             "answer": response.choices[0].message.content,
             "model": settings.llm_model,
+            "finish_reason": response.choices[0].finish_reason,
             "usage": {
                 "prompt_tokens": response.usage.prompt_tokens,
                 "completion_tokens": response.usage.completion_tokens,
@@ -156,8 +157,20 @@ class RAGService:
         # Step 4: Generate response with conversation history
         response_data = self.generate_response(prompt, conversation_history)
 
-        # Step 5: Parse response for source usage indicator and clean answer
+        # Step 5: Check for content filtering or empty responses
         answer = response_data["answer"]
+        finish_reason = response_data.get("finish_reason", "stop")
+        
+        if finish_reason == "content_filter" or not answer:
+            return {
+                "query": user_query,
+                "answer": "I'm unable to provide a response to this query due to content policy restrictions.",
+                "sources": [],
+                "model": response_data["model"],
+                "usage": response_data["usage"]
+            }
+        
+        # Step 6: Parse response for source usage indicator and clean answer
         sources_used = False
         
         if answer.startswith("[SOURCES_USED]"):
@@ -167,7 +180,7 @@ class RAGService:
             sources_used = False
             answer = answer.replace("[NO_SOURCES_USED]", "", 1).strip()
 
-        # Step 6: Return full result (only include sources if they were used)
+        # Step 7: Return full result (only include sources if they were used)
         return {
             "query": user_query,
             "answer": answer,
