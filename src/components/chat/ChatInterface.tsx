@@ -96,9 +96,11 @@ export function ChatInterface() {
     }
 
     const interval = setInterval(() => {
-      setLoadingText((prev) =>
-        prev === "Searching..." ? "Summarizing..." : "Searching..."
-      );
+      setLoadingText((prev) => {
+        if (prev === "Investigating...") return "Searching...";
+        if (prev === "Searching...") return "Thinking...";
+        return "Investigating...";
+      });
     }, 4000);
 
     return () => clearInterval(interval);
@@ -388,7 +390,6 @@ export function ChatInterface() {
 
   const suggestedQuestions = [
     "Did Donald Trump know about Epstein's conduct?",
-    "Who appears most frequently in the flight logs between 1999 and 2003?",
     "What properties did Epstein own and who visited them?",
     "What does the evidence show about Ghislaine Maxwell's role?",
   ];
