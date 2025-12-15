@@ -515,12 +515,13 @@ export function ChatInterface() {
                           key={question}
                           onClick={() => handleSuggestedQuestion(question, index)}
                           disabled={isLoading || !showSuggestions || isAtLimit}
-                          className={`w-full text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 text-left ${
+                          className={`w-full text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-left ${
                             showSuggestions
                               ? "opacity-70 hover:opacity-100 translate-y-0"
                               : "opacity-0 -translate-y-2"
                           }`}
                           style={{
+                            transition: "opacity 500ms, transform 500ms",
                             transitionDelay: showSuggestions
                               ? `${(suggestedQuestions.length - 1 - index) * 500}ms`
                               : "0ms",
@@ -557,12 +558,13 @@ export function ChatInterface() {
                       key={question}
                       onClick={() => handleSuggestedQuestion(question, index)}
                       disabled={isLoading || !showSuggestions || isAtLimit}
-                      className={`text-xs sm:text-sm text-zinc-300 transition-all duration-500 cursor-pointer disabled:cursor-not-allowed px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-800 ${
+                      className={`text-xs sm:text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 ${
                         showSuggestions
                           ? "opacity-70 hover:opacity-100 translate-y-0"
                           : "opacity-0 translate-y-2"
                       }`}
                       style={{
+                        transition: "opacity 500ms, transform 500ms",
                         transitionDelay: showSuggestions
                           ? `${index * 500}ms`
                           : "0ms",
