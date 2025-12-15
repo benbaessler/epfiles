@@ -17,6 +17,14 @@ class RAGService:
             self.groq_client = Groq(api_key=settings.groq_api_key)
         else:
             self.groq_client = None
+        # xAI/Grok for LLM inference (optional) - uses OpenAI-compatible API
+        if settings.llm_provider == "xai" and settings.xai_api_key:
+            self.xai_client = OpenAI(
+                api_key=settings.xai_api_key,
+                base_url="https://api.x.ai/v1"
+            )
+        else:
+            self.xai_client = None
         # ChromaDB for vector storage
         self.chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
         # Use get_or_create_collection to avoid crashing if DB is missing/empty
@@ -119,6 +127,12 @@ class RAGService:
                 model=settings.llm_model,
                 messages=messages,
                 max_completion_tokens=1000
+            )
+        elif settings.llm_provider == "xai":
+            response = self.xai_client.chat.completions.create(
+                model=settings.llm_model,
+                messages=messages,
+                max_tokens=1000
             )
         else:
             response = self.groq_client.chat.completions.create(

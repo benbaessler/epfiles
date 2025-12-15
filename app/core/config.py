@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     # API Keys
     openai_api_key: str  # For embeddings and optionally LLM
     groq_api_key: str = ""  # Optional, only needed if using Groq
+    xai_api_key: str = ""  # Optional, only needed if using xAI/Grok
 
     # Database Configuration
     database_url: str  # PostgreSQL connection URL (Railway auto-injects DATABASE_URL)
@@ -20,8 +21,8 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-large"
     
     # LLM Configuration
-    llm_provider: Literal["openai", "groq"] = "openai"
-    llm_model: str = "gpt-5-mini"
+    llm_provider: Literal["openai", "groq", "xai"] = "xai"
+    llm_model: str = "grok-4-1-fast-reasoning"
 
     # Retrieval Settings
     top_k_chunks: int = 5
