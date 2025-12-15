@@ -39,7 +39,7 @@
 
 :root {
   /* Default to Dark Mode Palette */
-  --background: #222126; /* Updated Theme Background */
+  --background: #171519; /* Updated Theme Background */
   --foreground: #e4e4e7; /* Off-white */
 }
 
@@ -51,6 +51,7 @@
 html {
   /* Support for notched devices (iPhone X+) */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: #171519;
 }
 
 body {
