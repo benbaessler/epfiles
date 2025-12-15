@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { usePostHog } from "posthog-js/react";
-import { ArrowUp, Loader2, Menu } from "lucide-react";
+import { ArrowUp, Loader, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import Link from "next/link";
@@ -64,6 +64,7 @@ export function ChatInterface() {
     return false;
   });
   const [isMultiLine, setIsMultiLine] = useState(false);
+  const [loadingText, setLoadingText] = useState("Searching...");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -86,6 +87,22 @@ export function ChatInterface() {
     }, 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Cycle loading text every 4 seconds
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingText("Searching...");
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setLoadingText((prev) =>
+        prev === "Searching..." ? "Summarizing..." : "Searching..."
+      );
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   // Fetch usage when user signs in
   const loadUsage = useCallback(async () => {
@@ -446,7 +463,7 @@ export function ChatInterface() {
           disabled={!input.trim() || isLoading}
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader className="h-5 w-5 animate-spin" />
           ) : (
             <ArrowUp className="h-5 w-5" />
           )}
@@ -588,9 +605,9 @@ export function ChatInterface() {
 
                 {isLoading && (
                   <div className="flex w-full px-2 sm:px-4 py-2 justify-start">
-                    <div className="bg-transparent text-zinc-200 px-0 rounded-2xl py-3 text-sm leading-relaxed flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 text-zinc-400 animate-spin" />
-                      <span className="text-zinc-400">Thinking...</span>
+                    <div className="bg-transparent text-zinc-200 px-0 rounded-2xl py-3 text-sm leading-relaxed flex items-center gap-2 shimmer">
+                      <Loader className="h-4 w-4 text-zinc-400 animate-spin" />
+                      <span className="text-zinc-400">{loadingText}</span>
                     </div>
                   </div>
                 )}

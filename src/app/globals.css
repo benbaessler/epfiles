@@ -334,3 +334,20 @@ body {
   text-decoration: line-through;
   opacity: 0.7;
 }
+
+/* Shimmer Animation */
+@keyframes shimmer {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+
+.shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
