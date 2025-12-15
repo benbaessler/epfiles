@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     llm_provider: Literal["openai", "groq"] = "openai"
-    llm_model: str = "gpt-5.1"
+    llm_model: str = "gpt-5-mini"
 
     # Retrieval Settings
     top_k_chunks: int = 5
