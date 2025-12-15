@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     llm_model: str = "grok-4-1-fast-reasoning"
 
     # Retrieval Settings
-    top_k_chunks: int = 5
+    top_k_chunks: int = 6
+    min_similarity_threshold: float = 0.3  # Filter out chunks below this similarity score
     max_context_tokens: int = 8000
 
     # Conversation Settings
