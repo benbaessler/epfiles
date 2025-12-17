@@ -526,14 +526,14 @@ export function ChatInterface() {
 
               <div className="w-full px-6 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 <div className="mx-auto max-w-3xl w-full">
-                  <div className="w-full flex flex-col items-stretch gap-3">
-                    <div className="w-full flex flex-col gap-2">
+                  <div className="w-full flex flex-col items-center gap-3">
+                    <div className="flex flex-col items-center gap-2">
                       {suggestedQuestions.map((question, index) => (
                         <button
                           key={question}
                           onClick={() => handleSuggestedQuestion(question, index)}
                           disabled={isLoading || !showSuggestions || isAtLimit}
-                          className={`w-full text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-left ${
+                          className={`text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-center ${
                             showSuggestions
                               ? "opacity-70 hover:opacity-100 translate-y-0"
                               : "opacity-0 -translate-y-2"
@@ -570,13 +570,13 @@ export function ChatInterface() {
 
                 <div className="w-full mb-4">{renderInput()}</div>
 
-                <div className="w-full flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+                <div className="w-full flex flex-col items-center gap-2">
                   {suggestedQuestions.map((question, index) => (
                     <button
                       key={question}
                       onClick={() => handleSuggestedQuestion(question, index)}
                       disabled={isLoading || !showSuggestions || isAtLimit}
-                      className={`text-xs sm:text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 ${
+                      className={`text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-center ${
                         showSuggestions
                           ? "opacity-70 hover:opacity-100 translate-y-0"
                           : "opacity-0 translate-y-2"
