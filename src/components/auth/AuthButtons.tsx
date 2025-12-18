@@ -67,7 +67,7 @@ export function AuthButtons() {
         </button>
       </SignInButton>
       <SignUpButton mode="modal">
-        <button className="h-9 sm:h-10 px-4 sm:px-8 rounded text-sm font-medium text-white bg-gradient-to-r from-[#5b6cf0] to-[#7c5af0] hover:from-[#6b7cf0] hover:to-[#8c6af0] transition-all duration-200 cursor-pointer shadow-lg shadow-indigo-500/20">
+        <button className="h-9 sm:h-10 px-4 sm:px-8 rounded text-sm font-medium text-black bg-white hover:bg-zinc-200 transition-all duration-200 cursor-pointer shadow-lg">
           Sign up
         </button>
       </SignUpButton>

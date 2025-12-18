@@ -53,7 +53,7 @@ export default function BillingPage() {
                 />
               </div>
 
-              <div className="flex flex-col items-center gap-3 mt-10 sm:mt-auto sm:pt-10">
+              <div className="flex flex-col items-center gap-3 mt-10 sm:mt-auto sm:pt-10 pb-10">
                 <div className="text-zinc-400 text-sm">
                   Built by{" "}
                   <span className="font-[family-name:var(--font-libre-baskerville)] italic">

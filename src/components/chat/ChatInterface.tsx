@@ -439,18 +439,14 @@ export function ChatInterface() {
 
     return (
       <div
-        className={`relative flex gap-2 p-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600 ${
+        className={`relative flex w-full gap-2 p-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600 ${
           isMultiLine ? "flex-col sm:flex-row sm:items-end" : "items-end"
         }`}
       >
         <textarea
           ref={textareaRef}
           className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-x-auto overflow-y-auto leading-normal"
-          placeholder={
-            isLoaded && !isSignedIn && trialExhausted
-              ? "Sign in to continue..."
-              : "Ask me anything..."
-          }
+          placeholder={"Ask me anything..."}
           rows={1}
           value={input}
           onChange={handleInput}
@@ -536,7 +532,9 @@ export function ChatInterface() {
                       {suggestedQuestions.map((question, index) => (
                         <button
                           key={question}
-                          onClick={() => handleSuggestedQuestion(question, index)}
+                          onClick={() =>
+                            handleSuggestedQuestion(question, index)
+                          }
                           disabled={isLoading || !showSuggestions || isAtLimit}
                           className={`text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-center ${
                             showSuggestions
@@ -546,7 +544,9 @@ export function ChatInterface() {
                           style={{
                             transition: "opacity 500ms, transform 500ms",
                             transitionDelay: showSuggestions
-                              ? `${(suggestedQuestions.length - 1 - index) * 500}ms`
+                              ? `${
+                                  (suggestedQuestions.length - 1 - index) * 500
+                                }ms`
                               : "0ms",
                           }}
                         >
