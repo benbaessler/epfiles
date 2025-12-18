@@ -34,6 +34,7 @@ import { useFingerprint } from "@/lib/fingerprint";
 
 const TRIAL_USED_KEY = "epfiles_trial_count";
 const TRIAL_QUERY_LIMIT = 5;
+const LIMITS_DISABLED = process.env.NEXT_PUBLIC_DISABLE_LIMITS === "true";
 
 export function ChatInterface() {
   const { isSignedIn, isLoaded } = useUser();
@@ -59,6 +60,7 @@ export function ChatInterface() {
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [trialExhausted, setTrialExhausted] = useState(() => {
+    if (LIMITS_DISABLED) return false;
     if (typeof window !== "undefined") {
       const count = parseInt(localStorage.getItem(TRIAL_USED_KEY) || "0", 10);
       return count >= TRIAL_QUERY_LIMIT;
@@ -70,7 +72,11 @@ export function ChatInterface() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const isAtLimit = usage ? usage.current >= usage.limit : false;
+  const isAtLimit = LIMITS_DISABLED
+    ? false
+    : usage
+      ? usage.current >= usage.limit
+      : false;
 
   const scrollToBottom = () => {
     if (bottomRef.current) {

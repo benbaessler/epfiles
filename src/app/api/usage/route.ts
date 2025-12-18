@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "https://jeffgpt-backend-production.up.railway.app";
+const LIMITS_DISABLED = process.env.DISABLE_LIMITS === "true";
 
 function getUserTier(has?: (params: { plan: string }) => boolean): string {
   if (!has) return "free";
@@ -15,6 +16,16 @@ export async function GET() {
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Return unlimited usage when limits are disabled
+  if (LIMITS_DISABLED) {
+    return NextResponse.json({
+      current: 0,
+      limit: 999999,
+      tier: "unlimited",
+      resets_at: "",
+    });
   }
 
   const tier = getUserTier(has);
