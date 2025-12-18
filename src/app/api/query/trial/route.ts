@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import {
   redis,
   TRIAL_TTL_SECONDS,
+  TRIAL_QUERY_LIMIT,
   ANON_RATE_LIMIT_PER_HOUR,
   ANON_RATE_LIMIT_TTL_SECONDS,
 } from "@/lib/redis";
@@ -72,14 +73,15 @@ export async function POST(request: NextRequest) {
     ? createTrialKeyFromFingerprint(fingerprint)
     : createTrialKeyFromIP(ip);
 
-  // Check trial status BEFORE rate limiting to avoid consuming rate limit
-  // budget for users whose trial is already exhausted
-  const trialExists = await redis.exists(trialKey);
-  if (trialExists) {
+  // Check current trial usage count BEFORE rate limiting to avoid consuming
+  // rate limit budget for users whose trial is already exhausted
+  const currentCount = await redis.get<number>(trialKey);
+  if (currentCount !== null && currentCount >= TRIAL_QUERY_LIMIT) {
     return NextResponse.json(
       {
         error: "trial_exhausted",
         message: "Sign up to continue using the service.",
+        remaining: 0,
       },
       { status: 403 }
     );
@@ -104,24 +106,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Atomically claim trial slot using SETNX to prevent TOCTOU race condition
-  const claimed = await redis.set(trialKey, Date.now(), {
-    nx: true,
-    ex: TRIAL_TTL_SECONDS,
-  });
+  // Increment trial usage counter atomically
+  const newCount = await redis.incr(trialKey);
 
-  // Handle race condition: another request claimed the trial between EXISTS and SET
-  if (claimed === null) {
+  // Set TTL only when key is first created (30-day rolling window)
+  if (newCount === 1) {
+    await redis.expire(trialKey, TRIAL_TTL_SECONDS);
+  }
+
+  // Handle race condition: another request pushed count over limit between GET and INCR
+  if (newCount > TRIAL_QUERY_LIMIT) {
     // Reverse the rate limit increment since we didn't actually process the request
     await redis.decr(rateLimitKey);
     return NextResponse.json(
       {
         error: "trial_exhausted",
         message: "Sign up to continue using the service.",
+        remaining: 0,
       },
       { status: 403 }
     );
   }
+
+  const remaining = TRIAL_QUERY_LIMIT - newCount;
 
   try {
     // Forward query to backend with anonymous user identifier
@@ -138,19 +145,20 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     if (!response.ok) {
-      // Backend error - release the trial slot so user can retry
-      await redis.del(trialKey);
+      // Backend error - decrement the trial counter so user can retry
+      await redis.decr(trialKey);
       return NextResponse.json(data, { status: response.status });
     }
 
     return NextResponse.json({
       ...data,
       is_trial: true,
+      remaining,
     });
   } catch (error) {
     console.error("Failed to process trial query:", error);
-    // Network/fetch error - release the trial slot so user can retry
-    await redis.del(trialKey);
+    // Network/fetch error - decrement the trial counter so user can retry
+    await redis.decr(trialKey);
     return NextResponse.json(
       { error: "Failed to process query" },
       { status: 500 }

@@ -8,6 +8,9 @@ export const redis = new Redis({
 // TTL for trial keys: 30 days in seconds
 export const TRIAL_TTL_SECONDS = 30 * 24 * 60 * 60;
 
+// Maximum trial queries allowed per anonymous user
+export const TRIAL_QUERY_LIMIT = 5;
+
 // Rate limit: max anonymous requests per IP per hour
 export const ANON_RATE_LIMIT_PER_HOUR = 5;
 export const ANON_RATE_LIMIT_TTL_SECONDS = 60 * 60;

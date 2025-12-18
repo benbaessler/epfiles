@@ -32,7 +32,8 @@ import {
 } from "@/lib/api";
 import { useFingerprint } from "@/lib/fingerprint";
 
-const TRIAL_USED_KEY = "epfiles_trial_used";
+const TRIAL_USED_KEY = "epfiles_trial_count";
+const TRIAL_QUERY_LIMIT = 5;
 
 export function ChatInterface() {
   const { isSignedIn, isLoaded } = useUser();
@@ -59,7 +60,8 @@ export function ChatInterface() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [trialExhausted, setTrialExhausted] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem(TRIAL_USED_KEY) === "true";
+      const count = parseInt(localStorage.getItem(TRIAL_USED_KEY) || "0", 10);
+      return count >= TRIAL_QUERY_LIMIT;
     }
     return false;
   });
@@ -289,12 +291,15 @@ export function ChatInterface() {
         tokens_used: data.usage?.total_tokens ?? 0,
       });
 
-      // Mark trial as used after successful response
-      if (isTrial) {
-        localStorage.setItem(TRIAL_USED_KEY, "true");
-        setTrialExhausted(true);
-        posthog.capture("trial_used");
-      } else {
+      // Update trial count after successful response
+      if (isTrial && "remaining" in data) {
+        const newCount = TRIAL_QUERY_LIMIT - data.remaining;
+        localStorage.setItem(TRIAL_USED_KEY, newCount.toString());
+        if (data.remaining === 0) {
+          setTrialExhausted(true);
+        }
+        posthog.capture("trial_used", { remaining: data.remaining });
+      } else if (!isTrial) {
         // Refresh conversations list to show the new/updated conversation
         loadConversations();
       }
@@ -303,7 +308,7 @@ export function ChatInterface() {
 
       if (err instanceof TrialExhaustedError) {
         posthog.capture("trial_exhausted");
-        localStorage.setItem(TRIAL_USED_KEY, "true");
+        localStorage.setItem(TRIAL_USED_KEY, TRIAL_QUERY_LIMIT.toString());
         setTrialExhausted(true);
         // Remove the user message we optimistically added
         setMessages((prev) => prev.slice(0, -1));

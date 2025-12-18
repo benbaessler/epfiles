@@ -134,12 +134,16 @@ export async function fetchUsage(): Promise<UsageStats> {
 export interface TrialExhaustedErrorData {
   error: "trial_exhausted";
   message: string;
+  remaining: number;
 }
 
 export class TrialExhaustedError extends Error {
+  remaining: number;
+
   constructor(data: TrialExhaustedErrorData) {
     super(data.message);
     this.name = "TrialExhaustedError";
+    this.remaining = data.remaining;
   }
 }
 
@@ -157,6 +161,7 @@ export class RateLimitedError extends Error {
 
 export interface TrialQueryResponse extends QueryResponse {
   is_trial: boolean;
+  remaining: number;
 }
 
 export async function sendTrialQuery(
@@ -192,6 +197,7 @@ export async function sendTrialQuery(
 
   return response.json();
 }
+
 
 
 
