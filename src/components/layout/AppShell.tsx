@@ -10,9 +10,11 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
-      {/* Auth Buttons - Fixed top right */}
-      <div className="fixed top-4 right-4 z-30 lg:top-6 lg:right-6">
-        <AuthButtons />
+      {/* Top Bar - Overlays chat window */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-gradient-to-b from-black/60 via-black/40 to-transparent backdrop-blur-sm pointer-events-none">
+        <div className="h-full flex items-center justify-end px-4 lg:px-6 pointer-events-auto">
+          <AuthButtons />
+        </div>
       </div>
       
       {/* Main Content */}
