@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { cn } from "@/lib/utils";
 
-type Tab = "privacy" | "terms" | "refund";
+type Tab = "privacy" | "terms";
 
 export default function LegalPage() {
   const router = useRouter();
@@ -15,7 +15,6 @@ export default function LegalPage() {
   const tabs = [
     { id: "privacy" as const, label: "Privacy Policy" },
     { id: "terms" as const, label: "Terms of Service" },
-    { id: "refund" as const, label: "Refund Policy" },
   ];
 
   return (
@@ -56,7 +55,6 @@ export default function LegalPage() {
               {/* Content */}
               {activeTab === "privacy" && <PrivacyContent />}
               {activeTab === "terms" && <TermsContent />}
-              {activeTab === "refund" && <RefundContent />}
             </div>
           </div>
         </div>
@@ -80,6 +78,9 @@ function PrivacyContent() {
             This Privacy Policy explains how we collect, use, disclose, and safeguard your
             information when you use our AI-powered research service.
           </p>
+          <p className="mt-4">
+            This project is open source and available on GitHub under the MIT license.
+          </p>
         </section>
 
         <section>
@@ -98,17 +99,16 @@ function PrivacyContent() {
           <p>When you use our service, we collect:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Search queries and conversation history</li>
-            <li>Query timestamps and frequency</li>
-            <li>Subscription and billing information</li>
+            <li>Query timestamps</li>
           </ul>
 
-          <h3 className="text-lg text-zinc-300 font-medium mt-6 mb-3">Technical Data</h3>
-          <p>We automatically collect:</p>
+          <h3 className="text-lg text-zinc-300 font-medium mt-6 mb-3">What We Don&apos;t Collect</h3>
+          <p>We do not use any third-party analytics or tracking services. We do not:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>IP address</li>
-            <li>Browser type and version</li>
-            <li>Device information</li>
-            <li>Cookies and similar tracking technologies</li>
+            <li>Track your browsing behavior</li>
+            <li>Use fingerprinting technologies</li>
+            <li>Share data with advertisers</li>
+            <li>Sell your personal information</li>
           </ul>
         </section>
 
@@ -118,8 +118,7 @@ function PrivacyContent() {
           <ul className="list-disc pl-6 space-y-2">
             <li>Provide and maintain our service</li>
             <li>Process your queries through our RAG (Retrieval-Augmented Generation) system</li>
-            <li>Manage your account and subscription</li>
-            <li>Process payments and billing</li>
+            <li>Manage your account</li>
             <li>Improve our service and user experience</li>
             <li>Communicate with you about your account or service updates</li>
             <li>Comply with legal obligations</li>
@@ -131,7 +130,7 @@ function PrivacyContent() {
           <p>We use the following third-party services that may process your data:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Clerk</strong> - Authentication and user management</li>
-            <li><strong>OpenAI</strong> - AI language model processing</li>
+            <li><strong>OpenAI</strong> - AI language model processing (embeddings)</li>
             <li><strong>Groq</strong> - AI inference processing</li>
             <li><strong>Vercel</strong> - Website hosting</li>
             <li><strong>Railway</strong> - Backend infrastructure</li>
@@ -161,7 +160,6 @@ function PrivacyContent() {
             <li><strong>Correction</strong> - Request correction of inaccurate data</li>
             <li><strong>Deletion</strong> - Request deletion of your personal data</li>
             <li><strong>Export</strong> - Request a portable copy of your data</li>
-            <li><strong>Opt-out</strong> - Opt out of marketing communications</li>
           </ul>
           <p className="mt-4">
             To exercise these rights, contact us at support@epfiles.ai.
@@ -180,9 +178,8 @@ function PrivacyContent() {
         <section>
           <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">8. Cookies</h2>
           <p>
-            We use cookies and similar technologies to maintain your session, remember your
-            preferences, and analyze how our service is used. You can control cookies through
-            your browser settings.
+            We use only essential cookies required for authentication and session management.
+            We do not use tracking cookies or third-party analytics cookies.
           </p>
         </section>
 
@@ -229,9 +226,12 @@ function TermsContent() {
         <section>
           <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">2. Description of Service</h2>
           <p>
-            epfiles.ai is an AI-powered research tool that uses Retrieval-Augmented Generation (RAG)
-            technology to help users search and analyze publicly available documents. The Service
-            provides AI-generated responses based on indexed public records.
+            epfiles.ai is a free, open-source AI-powered research tool that uses Retrieval-Augmented
+            Generation (RAG) technology to help users search and analyze publicly available documents.
+            The Service provides AI-generated responses based on indexed public records.
+          </p>
+          <p className="mt-4">
+            The source code for this project is available on GitHub under the MIT license.
           </p>
         </section>
 
@@ -259,7 +259,6 @@ function TermsContent() {
             <li>Interfere with or disrupt the Service</li>
             <li>Use automated tools to scrape or extract data beyond normal use</li>
             <li>Share your account credentials with others</li>
-            <li>Resell or redistribute the Service without authorization</li>
           </ul>
         </section>
 
@@ -283,26 +282,11 @@ function TermsContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">6. Subscription and Billing</h2>
+          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">6. Open Source License</h2>
           <p>
-            <strong>Paid Plans:</strong> Some features require a paid subscription. By subscribing,
-            you authorize us to charge your payment method on a recurring basis.
-          </p>
-          <p className="mt-4">
-            <strong>Cancellation:</strong> You may cancel your subscription at any time through
-            your account settings. Cancellation takes effect at the end of the current billing period.
-          </p>
-          <p className="mt-4">
-            <strong>Price Changes:</strong> We reserve the right to modify pricing with 30 days
-            notice. Continued use after a price change constitutes acceptance of the new pricing.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">7. Intellectual Property</h2>
-          <p>
-            <strong>Our Content:</strong> The Service, including its design, features, and
-            underlying technology, is owned by us and protected by intellectual property laws.
+            <strong>MIT License:</strong> The source code for this project is released under the
+            MIT License. You are free to use, copy, modify, merge, publish, distribute, sublicense,
+            and/or sell copies of the software, subject to the license terms.
           </p>
           <p className="mt-4">
             <strong>Your Queries:</strong> You retain ownership of the queries you submit.
@@ -316,20 +300,19 @@ function TermsContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">8. Limitation of Liability</h2>
+          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">7. Limitation of Liability</h2>
           <p>
             TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SERVICE IS PROVIDED &quot;AS IS&quot; WITHOUT
             WARRANTIES OF ANY KIND. WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL,
             SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE SERVICE.
           </p>
           <p className="mt-4">
-            OUR TOTAL LIABILITY FOR ANY CLAIMS ARISING FROM YOUR USE OF THE SERVICE SHALL NOT
-            EXCEED THE AMOUNT YOU PAID US IN THE 12 MONTHS PRECEDING THE CLAIM.
+            This is a free, open-source service provided without warranty. Use at your own risk.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">9. Indemnification</h2>
+          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">8. Indemnification</h2>
           <p>
             You agree to indemnify and hold us harmless from any claims, damages, or expenses
             arising from your use of the Service, your violation of these Terms, or your
@@ -338,7 +321,7 @@ function TermsContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">10. Termination</h2>
+          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">9. Termination</h2>
           <p>
             We reserve the right to suspend or terminate your access to the Service at any
             time for violation of these Terms or for any other reason at our discretion.
@@ -347,7 +330,7 @@ function TermsContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">11. Changes to Terms</h2>
+          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">10. Changes to Terms</h2>
           <p>
             We may modify these Terms at any time. We will notify you of material changes by
             posting the updated Terms on the Service. Your continued use after changes
@@ -356,7 +339,7 @@ function TermsContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">12. Governing Law</h2>
+          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">11. Governing Law</h2>
           <p>
             These Terms shall be governed by and construed in accordance with the laws of the
             United States, without regard to conflict of law principles.
@@ -364,7 +347,7 @@ function TermsContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">13. Contact</h2>
+          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">12. Contact</h2>
           <p>
             For questions about these Terms, contact us at:
           </p>
@@ -378,109 +361,3 @@ function TermsContent() {
     </>
   );
 }
-
-function RefundContent() {
-  return (
-    <>
-      <h1 className="font-[family-name:var(--font-libre-baskerville)] text-2xl sm:text-3xl text-zinc-100 mb-8">
-        Refund Policy
-      </h1>
-
-      <div className="prose prose-invert prose-zinc max-w-none space-y-6 text-zinc-300">
-        <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">No Refunds Policy</h2>
-          <p>
-            All sales on epfiles.ai are final. We do not offer refunds for subscription
-            payments or any other charges.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">Why We Don&apos;t Offer Refunds</h2>
-          <p>
-            Our service provides immediate access to AI-powered research capabilities. Once
-            you subscribe, you gain instant access to our full service, including:
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Unlimited or increased query limits (depending on plan)</li>
-            <li>Access to our RAG-powered search system</li>
-            <li>Conversation history and saved searches</li>
-          </ul>
-          <p className="mt-4">
-            Due to the nature of digital services and the immediate delivery of value, we
-            cannot offer refunds once payment is processed.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">Subscription Cancellation</h2>
-          <p>
-            You may cancel your subscription at any time through your account settings. When
-            you cancel:
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Your subscription will remain active until the end of the current billing period</li>
-            <li>You will not be charged for future billing periods</li>
-            <li>No partial refunds will be issued for unused time in the current period</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">Billing Disputes</h2>
-          <p>
-            If you believe you have been charged in error, please contact us at{" "}
-            <a href="mailto:support@epfiles.ai" className="text-blue-400 hover:text-blue-300">
-              support@epfiles.ai
-            </a>{" "}
-            within 7 days of the charge. We will review your case and work with you to
-            resolve any legitimate billing errors.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">Exceptional Circumstances</h2>
-          <p>
-            In rare cases involving technical issues that prevent you from accessing the
-            Service entirely, we may consider refund requests on a case-by-case basis.
-            Such requests must be submitted within 48 hours of the charge and include
-            documentation of the technical issue.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">Before You Subscribe</h2>
-          <p>
-            We encourage you to:
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Review our service features and limitations</li>
-            <li>Try our free tier to evaluate the Service before upgrading</li>
-            <li>Read our Terms of Service and Privacy Policy</li>
-            <li>Contact us with any questions before purchasing</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">Contact Us</h2>
-          <p>
-            For billing inquiries or questions about this policy, contact us at:
-          </p>
-          <p className="mt-2">
-            <a href="mailto:support@epfiles.ai" className="text-blue-400 hover:text-blue-300">
-              support@epfiles.ai
-            </a>
-          </p>
-        </section>
-      </div>
-    </>
-  );
-}
-
-
-
-
-
-
-
-
-

@@ -75,13 +75,6 @@ export const mockQueryResponse = {
   session_id: "new-session-id",
 };
 
-// Mock trial query response
-export const mockTrialQueryResponse = {
-  ...mockQueryResponse,
-  session_id: "trial-session-id",
-  is_trial: true,
-};
-
 // MSW handlers for API mocking
 export const handlers = [
   // GET /api/conversations
@@ -125,11 +118,6 @@ export const handlers = [
   http.post("/api/query", () => {
     return HttpResponse.json(mockQueryResponse);
   }),
-
-  // POST /api/query/trial
-  http.post("/api/query/trial", () => {
-    return HttpResponse.json(mockTrialQueryResponse);
-  }),
 ];
 
 // Setup MSW server
@@ -148,6 +136,7 @@ afterAll(() => server.close());
 vi.mock("@clerk/nextjs", () => ({
   useUser: vi.fn(() => ({
     isSignedIn: true,
+    isLoaded: true,
     user: {
       id: "test-user-id",
       firstName: "Test",
@@ -159,7 +148,7 @@ vi.mock("@clerk/nextjs", () => ({
     signOut: vi.fn(),
   })),
   SignInButton: ({ children }: { children: React.ReactNode }) => children,
-  SignOutButton: ({ children }: { children: React.ReactNode }) => children,
+  SignUpButton: ({ children }: { children: React.ReactNode }) => children,
   UserButton: () => null,
 }));
 
@@ -192,16 +181,3 @@ vi.mock("next/navigation", () => ({
   usePathname: vi.fn(() => "/"),
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
-
-
-
-
-
-
-
-
-
-
-
-
-

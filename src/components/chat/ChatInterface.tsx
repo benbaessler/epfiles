@@ -9,38 +9,23 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { usePostHog } from "posthog-js/react";
 import { ArrowUp, Loader, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import Link from "next/link";
 import { Message, MessageBubble } from "./MessageBubble";
 import { Sidebar } from "./Sidebar";
 import {
   fetchConversations,
   fetchMessages,
   sendQuery,
-  sendTrialQuery,
   deleteConversation,
-  fetchUsage,
-  UsageLimitExceededError,
-  TrialExhaustedError,
-  RateLimitedError,
   type Conversation,
   type ApiMessage,
-  type UsageStats,
 } from "@/lib/api";
-import { useFingerprint } from "@/lib/fingerprint";
-
-const TRIAL_USED_KEY = "epfiles_trial_count";
-const TRIAL_QUERY_LIMIT = 5;
-const LIMITS_DISABLED = process.env.NEXT_PUBLIC_DISABLE_LIMITS === "true";
 
 export function ChatInterface() {
   const { isSignedIn, isLoaded } = useUser();
   const { openSignIn } = useClerk();
-  const posthog = usePostHog();
-  const fingerprint = useFingerprint();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,26 +42,11 @@ export function ChatInterface() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [usage, setUsage] = useState<UsageStats | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [trialExhausted, setTrialExhausted] = useState(() => {
-    if (LIMITS_DISABLED) return false;
-    if (typeof window !== "undefined") {
-      const count = parseInt(localStorage.getItem(TRIAL_USED_KEY) || "0", 10);
-      return count >= TRIAL_QUERY_LIMIT;
-    }
-    return false;
-  });
   const [isMultiLine, setIsMultiLine] = useState(false);
   const [loadingText, setLoadingText] = useState("Searching...");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  const isAtLimit = LIMITS_DISABLED
-    ? false
-    : usage
-      ? usage.current >= usage.limit
-      : false;
 
   const scrollToBottom = () => {
     if (bottomRef.current) {
@@ -113,21 +83,6 @@ export function ChatInterface() {
 
     return () => clearInterval(interval);
   }, [isLoading]);
-
-  // Fetch usage when user signs in
-  const loadUsage = useCallback(async () => {
-    if (!isSignedIn) return;
-    try {
-      const data = await fetchUsage();
-      setUsage(data);
-    } catch (err) {
-      console.error("Failed to load usage:", err);
-    }
-  }, [isSignedIn]);
-
-  useEffect(() => {
-    loadUsage();
-  }, [loadUsage]);
 
   // Fetch conversations when user signs in
   const loadConversations = useCallback(async () => {
@@ -188,9 +143,6 @@ export function ChatInterface() {
 
     try {
       await deleteConversation(pendingDeleteId);
-      posthog.capture("conversation_deleted", {
-        session_id: pendingDeleteId,
-      });
       // Remove from local state
       setConversations((prev) =>
         prev.filter((c) => c.session_id !== pendingDeleteId)
@@ -233,11 +185,16 @@ export function ChatInterface() {
   };
 
   const sendMessage = async (messageContent: string) => {
-    // Treat Clerk loading state as neither anonymous nor authenticated.
-    // Avoid routing signed-in users (who haven't finished loading) through trial endpoints.
+    // Wait for Clerk to finish loading
     if (!isLoaded) return;
 
-    const isNewConversation = !sessionId;
+    // Require sign-in to send messages
+    if (!isSignedIn) {
+      setPendingMessage(messageContent);
+      openSignIn();
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -257,23 +214,11 @@ export function ChatInterface() {
       textareaRef.current.style.height = "40px";
     }
 
-    const isTrial = !isSignedIn;
-
-    posthog.capture("query_sent", {
-      session_id: sessionId,
-      is_new_conversation: isNewConversation,
-      is_trial: isTrial,
-      query_length: messageContent.length,
-    });
-
     try {
-      // Use trial endpoint for anonymous users, regular endpoint for signed-in users
-      const data = isTrial
-        ? await sendTrialQuery(messageContent, fingerprint)
-        : await sendQuery(messageContent, sessionId);
+      const data = await sendQuery(messageContent, sessionId);
 
-      // Store session ID from response (only for authenticated users)
-      if (!isTrial && data.session_id && !sessionId) {
+      // Store session ID from response
+      if (data.session_id && !sessionId) {
         setSessionId(data.session_id);
       }
 
@@ -290,80 +235,21 @@ export function ChatInterface() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      posthog.capture("query_success", {
-        session_id: data.session_id,
-        is_trial: isTrial,
-        sources_count: data.sources?.length ?? 0,
-        tokens_used: data.usage?.total_tokens ?? 0,
-      });
-
-      // Update trial count after successful response
-      if (isTrial && "remaining" in data) {
-        const newCount = TRIAL_QUERY_LIMIT - data.remaining;
-        localStorage.setItem(TRIAL_USED_KEY, newCount.toString());
-        if (data.remaining === 0) {
-          setTrialExhausted(true);
-        }
-        posthog.capture("trial_used", { remaining: data.remaining });
-      } else if (!isTrial) {
-        // Refresh conversations list to show the new/updated conversation
-        loadConversations();
-      }
+      // Refresh conversations list to show the new/updated conversation
+      loadConversations();
     } catch (err) {
       console.error("Failed to send message:", err);
-
-      if (err instanceof TrialExhaustedError) {
-        posthog.capture("trial_exhausted");
-        localStorage.setItem(TRIAL_USED_KEY, TRIAL_QUERY_LIMIT.toString());
-        setTrialExhausted(true);
-        // Remove the user message we optimistically added
-        setMessages((prev) => prev.slice(0, -1));
-      } else if (err instanceof RateLimitedError) {
-        posthog.capture("rate_limited", { is_trial: isTrial });
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: "Too many requests. Please wait a moment and try again.",
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
-        // Rate limiting happens before backend processing; remove optimistic user message.
-        setMessages((prev) => [...prev.slice(0, -1), errorMessage]);
-      } else if (err instanceof UsageLimitExceededError) {
-        posthog.capture("usage_limit_hit", {
-          tier: err.tier,
-          current: err.current,
-          limit: err.limit,
-        });
-        // Refresh usage to show the limit message
-        setUsage({
-          current: err.current,
-          limit: err.limit,
-          tier: err.tier,
-          resets_at: "",
-        });
-        // Remove the user message we optimistically added
-        setMessages((prev) => prev.slice(0, -1));
-      } else {
-        posthog.capture("query_error", {
-          error_type: err instanceof Error ? err.name : "unknown",
-          session_id: sessionId,
-          is_trial: isTrial,
-        });
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content:
-            "I encountered an error while processing your request. Please try again later.",
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      }
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content:
+          "I encountered an error while processing your request. Please try again later.",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -371,15 +257,6 @@ export function ChatInterface() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    if (!isLoaded) return;
-
-    // If not signed in and trial is exhausted, prompt sign-in
-    if (!isSignedIn && trialExhausted) {
-      setPendingMessage(input.trim());
-      openSignIn();
-      return;
-    }
-
     await sendMessage(input.trim());
   };
 
@@ -392,57 +269,18 @@ export function ChatInterface() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn, pendingMessage]);
 
-  // Clear trial exhausted state when user signs in
-  useEffect(() => {
-    if (isSignedIn) {
-      setTrialExhausted(false);
-    }
-  }, [isSignedIn]);
-
   const suggestedQuestions = [
     "Did Donald Trump know about Epstein's conduct?",
     "What properties did Epstein own and who visited them?",
     "What does the evidence show about Ghislaine Maxwell's role?",
   ];
 
-  const handleSuggestedQuestion = async (question: string, index: number) => {
-    if (isLoading || isAtLimit) return;
-    if (!isLoaded) return;
-
-    posthog.capture("suggested_question_clicked", {
-      question_index: index,
-    });
-
-    // If not signed in and trial is exhausted, prompt sign-in
-    if (!isSignedIn && trialExhausted) {
-      setPendingMessage(question);
-      openSignIn();
-      return;
-    }
-
+  const handleSuggestedQuestion = async (question: string) => {
+    if (isLoading) return;
     await sendMessage(question);
   };
 
   const renderInput = () => {
-    if (isAtLimit) {
-      return (
-        <div className="relative flex items-center justify-center p-4 border border-zinc-700 rounded-lg bg-[#1a1a1e]">
-          <p className="text-sm text-zinc-400">
-            You have hit your message limit,{" "}
-            <Link
-              href="/billing"
-              className="text-white underline hover:text-zinc-200"
-              onClick={() =>
-                posthog.capture("upgrade_link_clicked", { tier: usage?.tier })
-              }
-            >
-              upgrade here
-            </Link>
-          </p>
-        </div>
-      );
-    }
-
     return (
       <div
         className={`relative flex w-full gap-2 p-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600 ${
@@ -452,7 +290,7 @@ export function ChatInterface() {
         <textarea
           ref={textareaRef}
           className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-x-auto overflow-y-auto leading-normal"
-          placeholder={"Ask me anything..."}
+          placeholder={isSignedIn ? "Ask me anything..." : "Sign in to ask questions..."}
           rows={1}
           value={input}
           onChange={handleInput}
@@ -538,10 +376,8 @@ export function ChatInterface() {
                       {suggestedQuestions.map((question, index) => (
                         <button
                           key={question}
-                          onClick={() =>
-                            handleSuggestedQuestion(question, index)
-                          }
-                          disabled={isLoading || !showSuggestions || isAtLimit}
+                          onClick={() => handleSuggestedQuestion(question)}
+                          disabled={isLoading || !showSuggestions}
                           className={`text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-center ${
                             showSuggestions
                               ? "opacity-70 hover:opacity-100 translate-y-0"
@@ -585,8 +421,8 @@ export function ChatInterface() {
                   {suggestedQuestions.map((question, index) => (
                     <button
                       key={question}
-                      onClick={() => handleSuggestedQuestion(question, index)}
-                      disabled={isLoading || !showSuggestions || isAtLimit}
+                      onClick={() => handleSuggestedQuestion(question)}
+                      disabled={isLoading || !showSuggestions}
                       className={`text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-center ${
                         showSuggestions
                           ? "opacity-70 hover:opacity-100 translate-y-0"

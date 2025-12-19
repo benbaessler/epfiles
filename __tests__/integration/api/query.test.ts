@@ -104,7 +104,7 @@ describe("Query API Route", () => {
         session_id: "existing-session",
         top_k: 3,
       });
-      const response = await POST(request);
+      await POST(request);
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/query"),
@@ -147,16 +147,3 @@ describe("Query API Route", () => {
     });
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
