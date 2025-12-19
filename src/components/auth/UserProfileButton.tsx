@@ -1,17 +1,10 @@
 "use client";
 
-import { useUser, useClerk, useAuth } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { LogOut, User, CircleFadingArrowUp, FileText } from "lucide-react";
+import { LogOut, User, FileText } from "lucide-react";
 import { Popover } from "@base-ui-components/react/popover";
 import { cn } from "@/lib/utils";
-
-// Define your subscription plan slugs here (must match Clerk dashboard)
-// Order by priority: highest tier first
-const SUBSCRIPTION_PLANS = [
-  { slug: "research", name: "Research" },
-  { slug: "explore", name: "Explore" },
-] as const;
 
 interface UserProfileButtonProps {
   collapsed?: boolean;
@@ -20,24 +13,11 @@ interface UserProfileButtonProps {
 export function UserProfileButton({ collapsed = false }: UserProfileButtonProps) {
   const { isLoaded, isSignedIn, user } = useUser();
   const { signOut } = useClerk();
-  const { has } = useAuth();
   const router = useRouter();
 
   if (!isLoaded || !isSignedIn) {
     return null;
   }
-
-  // Check subscription plans in order of priority (highest tier first)
-  const getSubscriptionPlan = () => {
-    for (const plan of SUBSCRIPTION_PLANS) {
-      if (has?.({ plan: plan.slug })) {
-        return plan.name;
-      }
-    }
-    return "Free";
-  };
-
-  const subscriptionPlan = getSubscriptionPlan();
 
   return (
     <Popover.Root>
@@ -77,22 +57,12 @@ export function UserProfileButton({ collapsed = false }: UserProfileButtonProps)
               user.emailAddresses[0]?.emailAddress ||
               "User"}
           </span>
-          <span className="text-sm text-zinc-500 truncate max-w-[180px]">
-            {subscriptionPlan} Plan
-          </span>
         </div>
       </Popover.Trigger>
 
       <Popover.Portal>
         <Popover.Positioner side="top" sideOffset={12} align="start">
           <Popover.Popup className="bg-[#1c1c24] border border-[#3a3a4a] rounded-lg shadow-xl shadow-black/50 py-1.5 px-1 min-w-[200px] z-50">
-            <button
-              onClick={() => router.push("/billing")}
-              className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer whitespace-nowrap"
-            >
-              <CircleFadingArrowUp className="h-5 w-5 text-zinc-400 shrink-0" />
-              Upgrade plan
-            </button>
             <button
               onClick={() => router.push("/legal")}
               className="w-full flex items-center gap-3 px-3 py-2 text-base text-zinc-300 hover:bg-zinc-700/50 rounded-lg cursor-pointer whitespace-nowrap"
