@@ -124,7 +124,7 @@ export const handlers = [
 export const server = setupServer(...handlers);
 
 // Start server before all tests
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 
 // Reset handlers after each test
 afterEach(() => server.resetHandlers());

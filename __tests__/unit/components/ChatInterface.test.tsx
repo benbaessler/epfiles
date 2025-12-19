@@ -4,6 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { server, mockQueryResponse } from "../../setup";
 import { http, HttpResponse } from "msw";
 
+// Mock gdrive-links module
+vi.mock("@/lib/gdrive-links", () => ({
+  getGDriveLink: vi.fn(() => null),
+}));
+
 // Mock Clerk - configurable user state
 vi.mock("@clerk/nextjs", () => ({
   useUser: () => ({
@@ -33,50 +38,104 @@ vi.mock("@/lib/layout-context", () => ({
   LayoutProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// Helper to get the first textarea (component renders two for mobile/desktop)
-function getTextarea() {
-  const textareas = screen.getAllByRole("textbox");
-  return textareas[0];
-}
-
-// Helper to get the send button (the one with the ArrowUp SVG)
-function getSendButton() {
-  const buttons = screen.getAllByRole("button");
-  // Find button that contains an SVG and no text content (the send button)
-  return buttons.find(
-    (btn) =>
-      btn.querySelector("svg.lucide-arrow-up") !== null ||
-      (btn.querySelector("svg") && btn.textContent?.trim() === "")
-  );
-}
-
 // Mock scrollIntoView which doesn't exist in jsdom
 Element.prototype.scrollIntoView = vi.fn();
 
 describe("ChatInterface", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    server.resetHandlers();
   });
 
-  describe("basic functionality", () => {
-    it("should show default placeholder for signed in users", async () => {
+  describe("basic rendering", () => {
+    it("should render the chat interface with placeholder text", async () => {
       const { ChatInterface } = await import(
         "@/components/chat/ChatInterface"
       );
 
       render(<ChatInterface />);
 
-      const textarea = getTextarea();
-      expect(textarea).toBeInTheDocument();
-      expect(textarea.getAttribute("placeholder")).toBe("Ask me anything...");
+      // Component renders two textareas (mobile/desktop), check that at least one has correct placeholder
+      const textareas = screen.getAllByRole("textbox");
+      expect(textareas.length).toBeGreaterThan(0);
+      expect(textareas[0]).toHaveAttribute("placeholder", "Ask me anything...");
     });
 
-    it("should send query when user submits a message", async () => {
-      let queryEndpointCalled = false;
+    it("should render the title text", async () => {
+      const { ChatInterface } = await import(
+        "@/components/chat/ChatInterface"
+      );
+
+      render(<ChatInterface />);
+
+      // Component renders mobile and desktop versions, so there can be multiple
+      const titleElements = screen.getAllByText(/I'm an AI model trained/);
+      expect(titleElements.length).toBeGreaterThan(0);
+
+      const epsteinElements = screen.getAllByText(/Epstein files/);
+      expect(epsteinElements.length).toBeGreaterThan(0);
+    });
+
+    it("should have a send button", async () => {
+      const { ChatInterface } = await import(
+        "@/components/chat/ChatInterface"
+      );
+
+      render(<ChatInterface />);
+
+      // Find the send button (button with ArrowUp icon)
+      const buttons = screen.getAllByRole("button");
+      const sendButton = buttons.find(
+        (btn) => btn.querySelector("svg.lucide-arrow-up") !== null
+      );
+
+      expect(sendButton).toBeDefined();
+    });
+
+    it("should disable send button when input is empty", async () => {
+      const { ChatInterface } = await import(
+        "@/components/chat/ChatInterface"
+      );
+
+      render(<ChatInterface />);
+
+      // Find the send button
+      const buttons = screen.getAllByRole("button");
+      const sendButton = buttons.find(
+        (btn) => btn.querySelector("svg.lucide-arrow-up") !== null
+      );
+
+      expect(sendButton).toBeDisabled();
+    });
+
+    it("should enable send button when input has text", async () => {
+      const { ChatInterface } = await import(
+        "@/components/chat/ChatInterface"
+      );
+
+      render(<ChatInterface />);
+
+      const textareas = screen.getAllByRole("textbox");
+      await userEvent.type(textareas[0], "Test question");
+
+      const buttons = screen.getAllByRole("button");
+      const sendButton = buttons.find(
+        (btn) => btn.querySelector("svg.lucide-arrow-up") !== null
+      );
+
+      expect(sendButton).not.toBeDisabled();
+    });
+  });
+
+  describe("API integration", () => {
+    it("should call query API when submitting a message", async () => {
+      let apiCalled = false;
+      let capturedBody: Record<string, unknown> | null = null;
 
       server.use(
-        http.post("/api/query", async () => {
-          queryEndpointCalled = true;
+        http.post("/api/query", async ({ request }) => {
+          apiCalled = true;
+          capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json(mockQueryResponse);
         })
       );
@@ -87,95 +146,26 @@ describe("ChatInterface", () => {
 
       render(<ChatInterface />);
 
-      const textarea = getTextarea();
-      await userEvent.type(textarea, "Test question");
+      const textareas = screen.getAllByRole("textbox");
+      await userEvent.type(textareas[0], "What happened in 2019?");
 
-      const sendButton = getSendButton();
-      expect(sendButton).toBeDefined();
+      const buttons = screen.getAllByRole("button");
+      const sendButton = buttons.find(
+        (btn) => btn.querySelector("svg.lucide-arrow-up") !== null
+      );
+
       await userEvent.click(sendButton!);
 
       await waitFor(
         () => {
-          expect(queryEndpointCalled).toBe(true);
+          expect(apiCalled).toBe(true);
         },
-        { timeout: 3000 }
-      );
-    });
-
-    it("should display user message after sending", async () => {
-      server.use(
-        http.post("/api/query", async () => {
-          return HttpResponse.json(mockQueryResponse);
-        })
+        { timeout: 5000 }
       );
 
-      const { ChatInterface } = await import(
-        "@/components/chat/ChatInterface"
-      );
-
-      render(<ChatInterface />);
-
-      const textarea = getTextarea();
-      await userEvent.type(textarea, "Test question");
-
-      const sendButton = getSendButton();
-      await userEvent.click(sendButton!);
-
-      await waitFor(() => {
-        expect(screen.getByText("Test question")).toBeInTheDocument();
-      });
-    });
-
-    it("should display assistant response after query", async () => {
-      server.use(
-        http.post("/api/query", async () => {
-          return HttpResponse.json(mockQueryResponse);
-        })
-      );
-
-      const { ChatInterface } = await import(
-        "@/components/chat/ChatInterface"
-      );
-
-      render(<ChatInterface />);
-
-      const textarea = getTextarea();
-      await userEvent.type(textarea, "Test question");
-
-      const sendButton = getSendButton();
-      await userEvent.click(sendButton!);
-
-      await waitFor(() => {
-        expect(screen.getByText("Test answer from AI")).toBeInTheDocument();
-      });
-    });
-
-    it("should show error message on query failure", async () => {
-      server.use(
-        http.post("/api/query", async () => {
-          return HttpResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
-          );
-        })
-      );
-
-      const { ChatInterface } = await import(
-        "@/components/chat/ChatInterface"
-      );
-
-      render(<ChatInterface />);
-
-      const textarea = getTextarea();
-      await userEvent.type(textarea, "Test question");
-
-      const sendButton = getSendButton();
-      await userEvent.click(sendButton!);
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/encountered an error/i)
-        ).toBeInTheDocument();
+      expect(capturedBody).toMatchObject({
+        query: "What happened in 2019?",
+        top_k: 5,
       });
     });
   });

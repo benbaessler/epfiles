@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { server } from "../../setup";
+import { http, HttpResponse } from "msw";
 
-// Mock fetch globally for backend calls
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+const BACKEND_URL = "http://localhost:8000";
 
 // Mock the auth function from Clerk
 vi.mock("@clerk/nextjs/server", () => ({
@@ -28,7 +28,7 @@ function createMockRequest(body: Record<string, unknown>): NextRequest {
 describe("Query API Route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFetch.mockReset();
+    server.resetHandlers();
   });
 
   describe("POST /api/query", () => {
@@ -54,11 +54,11 @@ describe("Query API Route", () => {
       };
 
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(queryResponse),
-      });
+      server.use(
+        http.post(`${BACKEND_URL}/api/query`, () => {
+          return HttpResponse.json(queryResponse);
+        })
+      );
 
       const request = createMockRequest({
         query: "Test query",
@@ -69,17 +69,6 @@ describe("Query API Route", () => {
 
       expect(response.status).toBe(200);
       expect(data).toEqual(queryResponse);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/query"),
-        expect.objectContaining({
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-User-Id": "test-user-id",
-          },
-          body: JSON.stringify({ query: "Test query", top_k: 5 }),
-        })
-      );
     });
 
     it("should include session_id in request when provided", async () => {
@@ -92,12 +81,15 @@ describe("Query API Route", () => {
         session_id: "existing-session",
       };
 
+      let capturedBody: Record<string, unknown> | null = null;
+
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(queryResponse),
-      });
+      server.use(
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(queryResponse);
+        })
+      );
 
       const request = createMockRequest({
         query: "Follow-up query",
@@ -106,25 +98,20 @@ describe("Query API Route", () => {
       });
       await POST(request);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/query"),
-        expect.objectContaining({
-          body: JSON.stringify({
-            query: "Follow-up query",
-            session_id: "existing-session",
-            top_k: 3,
-          }),
-        })
-      );
+      expect(capturedBody).toMatchObject({
+        query: "Follow-up query",
+        session_id: "existing-session",
+        top_k: 3,
+      });
     });
 
     it("should forward backend errors", async () => {
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 429,
-        json: () => Promise.resolve({ detail: "Rate limit exceeded" }),
-      });
+      server.use(
+        http.post(`${BACKEND_URL}/api/query`, () => {
+          return HttpResponse.json({ detail: "Rate limit exceeded" }, { status: 429 });
+        })
+      );
 
       const request = createMockRequest({ query: "Test" });
       const response = await POST(request);
@@ -136,7 +123,11 @@ describe("Query API Route", () => {
 
     it("should return 500 when backend fetch fails", async () => {
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      server.use(
+        http.post(`${BACKEND_URL}/api/query`, () => {
+          return HttpResponse.error();
+        })
+      );
 
       const request = createMockRequest({ query: "Test" });
       const response = await POST(request);

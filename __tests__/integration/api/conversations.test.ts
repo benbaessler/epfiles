@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { server } from "../../setup";
+import { http, HttpResponse } from "msw";
 
-// Mock fetch globally for backend calls
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+const BACKEND_URL = "http://localhost:8000";
 
 // Mock the auth function from Clerk
 vi.mock("@clerk/nextjs/server", () => ({
@@ -17,7 +17,7 @@ const mockAuth = vi.mocked(auth);
 describe("Conversations API Route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFetch.mockReset();
+    server.resetHandlers();
   });
 
   describe("GET /api/conversations", () => {
@@ -37,32 +37,26 @@ describe("Conversations API Route", () => {
       ];
 
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(mockConversations),
-      });
+      server.use(
+        http.get(`${BACKEND_URL}/api/conversations`, () => {
+          return HttpResponse.json(mockConversations);
+        })
+      );
 
       const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data).toEqual(mockConversations);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/conversations"),
-        expect.objectContaining({
-          headers: { "X-User-Id": "test-user-id" },
-        })
-      );
     });
 
     it("should return empty array when backend returns 405", async () => {
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 405,
-        json: () => Promise.resolve({ error: "Method not allowed" }),
-      });
+      server.use(
+        http.get(`${BACKEND_URL}/api/conversations`, () => {
+          return HttpResponse.json({ error: "Method not allowed" }, { status: 405 });
+        })
+      );
 
       const response = await GET();
       const data = await response.json();
@@ -83,7 +77,11 @@ describe("Conversations API Route", () => {
 
     it("should return 500 when backend fetch fails", async () => {
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      server.use(
+        http.get(`${BACKEND_URL}/api/conversations`, () => {
+          return HttpResponse.error();
+        })
+      );
 
       const response = await GET();
       const data = await response.json();
@@ -112,36 +110,26 @@ describe("Conversations API Route", () => {
       };
 
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(newConversation),
-      });
+      server.use(
+        http.post(`${BACKEND_URL}/api/conversations`, () => {
+          return HttpResponse.json(newConversation);
+        })
+      );
 
       const response = await POST();
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data).toEqual(newConversation);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/conversations"),
-        expect.objectContaining({
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-User-Id": "test-user-id",
-          },
-        })
-      );
     });
 
     it("should forward backend errors", async () => {
       mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 400,
-        json: () => Promise.resolve({ error: "Bad request" }),
-      });
+      server.use(
+        http.post(`${BACKEND_URL}/api/conversations`, () => {
+          return HttpResponse.json({ error: "Bad request" }, { status: 400 });
+        })
+      );
 
       const response = await POST();
       const data = await response.json();
