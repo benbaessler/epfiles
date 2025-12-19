@@ -50,28 +50,6 @@ export async function fetchMessages(sessionId: string): Promise<ApiMessage[]> {
   return response.json();
 }
 
-export interface UsageLimitError {
-  error: "usage_limit_exceeded";
-  message: string;
-  current: number;
-  limit: number;
-  tier: string;
-}
-
-export class UsageLimitExceededError extends Error {
-  current: number;
-  limit: number;
-  tier: string;
-
-  constructor(data: UsageLimitError) {
-    super(data.message);
-    this.name = "UsageLimitExceededError";
-    this.current = data.current;
-    this.limit = data.limit;
-    this.tier = data.tier;
-  }
-}
-
 export async function sendQuery(
   query: string,
   sessionId?: string | null,
@@ -91,11 +69,6 @@ export async function sendQuery(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    
-    if (response.status === 429 && error.error === "usage_limit_exceeded") {
-      throw new UsageLimitExceededError(error);
-    }
-    
     throw new Error(error.detail || "Failed to send query");
   }
 
@@ -111,100 +84,3 @@ export async function deleteConversation(sessionId: string): Promise<void> {
     throw new Error("Failed to delete conversation");
   }
 }
-
-export interface UsageStats {
-  current: number;
-  limit: number;
-  tier: string;
-  resets_at: string;
-}
-
-export async function fetchUsage(): Promise<UsageStats> {
-  const response = await fetch("/api/usage");
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch usage");
-  }
-
-  return response.json();
-}
-
-// Trial query types and functions
-
-export interface TrialExhaustedErrorData {
-  error: "trial_exhausted";
-  message: string;
-  remaining: number;
-}
-
-export class TrialExhaustedError extends Error {
-  remaining: number;
-
-  constructor(data: TrialExhaustedErrorData) {
-    super(data.message);
-    this.name = "TrialExhaustedError";
-    this.remaining = data.remaining;
-  }
-}
-
-export interface RateLimitedErrorData {
-  error: "rate_limited";
-  message: string;
-}
-
-export class RateLimitedError extends Error {
-  constructor(data: RateLimitedErrorData) {
-    super(data.message);
-    this.name = "RateLimitedError";
-  }
-}
-
-export interface TrialQueryResponse extends QueryResponse {
-  is_trial: boolean;
-  remaining: number;
-}
-
-export async function sendTrialQuery(
-  query: string,
-  fingerprint?: string | null,
-  topK: number = 5
-): Promise<TrialQueryResponse> {
-  const response = await fetch("/api/query/trial", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query,
-      top_k: topK,
-      ...(fingerprint && { fingerprint }),
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-
-    if (response.status === 403 && error.error === "trial_exhausted") {
-      throw new TrialExhaustedError(error);
-    }
-
-    if (response.status === 429 && error.error === "rate_limited") {
-      throw new RateLimitedError(error);
-    }
-
-    throw new Error(error.detail || error.message || "Failed to send query");
-  }
-
-  return response.json();
-}
-
-
-
-
-
-
-
-
-
-
-
