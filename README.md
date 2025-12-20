@@ -1,4 +1,4 @@
-# EPFiles
+# Epfiles
 
 A RAG-powered document exploration system for the Epstein Files corpus. Query thousands of court documents, depositions, and flight logs with AI-assisted search and source citations.
 
@@ -13,22 +13,11 @@ epfiles/
 └── .env               # Central environment configuration
 ```
 
-**Stack:**
-- **Frontend**: Next.js 16, React 19, Tailwind CSS, Clerk Auth
-- **Backend**: FastAPI, ChromaDB, LangChain
-- **LLM**: xAI Grok / OpenAI / Groq (configurable)
-- **Embeddings**: OpenAI text-embedding-3-large
-- **Database**: PostgreSQL (conversations), ChromaDB (vectors)
-
 ## Prerequisites
 
 - **Python** 3.11+
 - **Bun** (or Node.js 20+)
 - **PostgreSQL** 15+
-- API keys for:
-  - OpenAI (embeddings)
-  - xAI/Groq/OpenAI (LLM - choose one)
-  - Clerk (authentication)
 
 ## Quick Start
 
@@ -47,10 +36,8 @@ Edit `.env` with your API keys:
 ```bash
 # Required
 OPENAI_API_KEY=sk-xxx           # For embeddings
-XAI_API_KEY=xai-xxx             # For LLM (or use GROQ_API_KEY)
+XAI_API_KEY=xai-xxx             # For LLM
 DATABASE_URL=postgresql://...   # PostgreSQL connection
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_xxx
-CLERK_SECRET_KEY=sk_xxx
 ```
 
 ### 2. Set Up Backend
@@ -129,26 +116,6 @@ This will:
 2. Generate embeddings using OpenAI
 3. Store in ChromaDB at `packages/backend/chroma_db/`
 
-**Estimated time**: 30-60 minutes  
-**Estimated cost**: ~$10-30 for embeddings (one-time)
-
-## Environment Variables Reference
-
-| Variable | Package | Description |
-|----------|---------|-------------|
-| `OPENAI_API_KEY` | Backend | OpenAI API key for embeddings |
-| `XAI_API_KEY` | Backend | xAI/Grok API key (default LLM) |
-| `GROQ_API_KEY` | Backend | Groq API key (alternative LLM) |
-| `DATABASE_URL` | Backend | PostgreSQL connection string |
-| `CHROMA_DB_PATH` | Backend | Path to ChromaDB (default: `./chroma_db`) |
-| `LLM_PROVIDER` | Backend | `xai`, `openai`, or `groq` |
-| `LLM_MODEL` | Backend | Model name (e.g., `grok-4-1-fast-reasoning`) |
-| `APP_ENV` | Backend | `development` or `production` |
-| `CORS_ORIGINS` | Backend | JSON array of allowed origins |
-| `BACKEND_URL` | Interface | Backend API URL |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Interface | Clerk public key |
-| `CLERK_SECRET_KEY` | Interface | Clerk secret key |
-
 ## Development
 
 ### Running Tests
@@ -189,37 +156,3 @@ packages/
     ├── manifest/          # Document manifest
     └── sources/           # Source documentation
 ```
-
-## Deployment
-
-### Backend (Railway)
-
-```bash
-cd packages/backend
-# Push to GitHub, then deploy via Railway dashboard
-# Set environment variables in Railway
-```
-
-### Interface (Vercel)
-
-```bash
-cd packages/interface
-vercel
-```
-
-Set the root directory to `packages/interface` in Vercel settings.
-
-## Costs
-
-| Component | Low Traffic | Medium Traffic |
-|-----------|-------------|----------------|
-| ChromaDB | FREE | FREE |
-| OpenAI Embeddings | ~$2/mo | ~$10/mo |
-| xAI/Groq LLM | ~$5-20/mo | ~$20-50/mo |
-| Railway Backend | FREE-$10/mo | $10-20/mo |
-| Vercel Frontend | FREE | FREE |
-| **Total** | **~$7-30/mo** | **~$30-80/mo** |
-
-## License
-
-MIT
