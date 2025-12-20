@@ -1,0 +1,26 @@
+---
+alwaysApply: true
+---
+
+### Task Tracking in `@.cursor/log.md`
+
+1.  **Maximum Detail**: Each task description must be as detailed and context-rich as possible. Explain the *why* and *what* of the task, not just the action.
+
+2.  **File and Line References**: When a task relates to specific files, you MUST include references to those files. If applicable, include line numbers to pinpoint the exact context.
+
+    *   Format: `See @path/to/file.md:L10-L25`
+
+3.  **Clarity over Brevity**: Prioritize clear, unambiguous descriptions over short, cryptic notes. Another person (or you, in a week) should be able to understand the task's full scope without needing to ask for clarification.
+
+### Persistent Context in `@.cursor/overview.md`
+
+1.  **Promote durable learnings**: Whenever a task produces new conventions, invariants, or structural decisions that will matter for future work (naming schemes, directory layouts, schema fields, pipeline assumptions, etc.), distill them into a short, durable note in `overview.md` (typically under the `Notes` section).
+
+2.  **Describe what and why**: Each note must briefly capture:
+
+    * what was decided or clarified (the rule, convention, or behavior), and  
+    * why it matters for future tasks (how it affects ingestion, extraction, training, or maintenance).
+
+3.  **Anchor to source artifacts**: When the context comes from specific code or documentation, add explicit references back to the detailed source using the standard format, e.g. `See @scripts/extract_text.py:L10-L75` or `See @manifest/README.md:L40-L85`, so the reasoning can be reconstructed later.
+
+4.  **Filter out noise**: Only promote information that is stable and reusable. Ephemeral debugging steps, temporary hacks, or one-off environment issues stay in `log.md` and do **not** belong in `overview.md`.
