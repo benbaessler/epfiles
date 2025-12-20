@@ -2,7 +2,11 @@ from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from functools import lru_cache
 from typing import Literal
+from pathlib import Path
 import json
+
+# Determine the root .env path (two levels up from this file)
+ROOT_ENV_PATH = Path(__file__).resolve().parent.parent.parent.parent.parent / ".env"
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
@@ -85,9 +89,9 @@ class Settings(BaseSettings):
         return self.cors_origins
 
     class Config:
-        env_file = ".env"
+        # Load from root .env first, fall back to local .env
+        env_file = (str(ROOT_ENV_PATH), ".env")
 
 @lru_cache()
 def get_settings():
     return Settings()
-
