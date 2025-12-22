@@ -12,9 +12,8 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # API Keys
-    openai_api_key: str  # For embeddings and optionally LLM
-    groq_api_key: str = ""  # Optional, only needed if using Groq
-    xai_api_key: str = ""  # Optional, only needed if using xAI/Grok
+    openai_api_key: str  # For embeddings
+    xai_api_key: str  # Required for LLM inference (Grok)
 
     # Database Configuration
     database_url: str  # PostgreSQL connection URL (Railway auto-injects DATABASE_URL)
@@ -24,9 +23,11 @@ class Settings(BaseSettings):
     collection_name: str = "epstein_files"
     embedding_model: str = "text-embedding-3-large"
     
-    # LLM Configuration
-    llm_provider: Literal["openai", "groq", "xai"] = "xai"
+    # LLM Configuration (xAI/Grok only)
     llm_model: str = "grok-4-1-fast-reasoning"
+    llm_max_tokens: int = 1000
+    llm_temperature: float = 0.1
+    xai_base_url: str = "https://api.x.ai/v1"
 
     # Retrieval Settings
     top_k_chunks: int = 6
