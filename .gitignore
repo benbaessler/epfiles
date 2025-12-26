@@ -74,7 +74,3 @@ next-env.d.ts
 # ChromaDB vector store (regeneratable)
 packages/backend/chroma_db/
 chroma_db/
-
-# Markdown files (except README.md)
-*.md
-!README.md
