@@ -5,15 +5,7 @@ import { http, HttpResponse } from "msw";
 
 const BACKEND_URL = "http://localhost:8000";
 
-// Mock the auth function from Clerk
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: vi.fn(),
-}));
-
-import { auth } from "@clerk/nextjs/server";
 import { POST } from "@/app/api/query/route";
-
-const mockAuth = vi.mocked(auth);
 
 function createMockRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest("http://localhost:3000/api/query", {
@@ -32,18 +24,7 @@ describe("Query API Route", () => {
   });
 
   describe("POST /api/query", () => {
-    it("should return 401 when user is not authenticated", async () => {
-      mockAuth.mockResolvedValue({ userId: null } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
-
-      const request = createMockRequest({ query: "Test query" });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(401);
-      expect(data.error).toBe("Unauthorized");
-    });
-
-    it("should forward query to backend when authenticated", async () => {
+    it("should forward query to backend", async () => {
       const queryResponse = {
         query: "Test query",
         answer: "Test answer",
@@ -53,7 +34,6 @@ describe("Query API Route", () => {
         session_id: "session-123",
       };
 
-      mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
       server.use(
         http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(queryResponse);
@@ -83,7 +63,6 @@ describe("Query API Route", () => {
 
       let capturedBody: Record<string, unknown> | null = null;
 
-      mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
       server.use(
         http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>;
@@ -106,7 +85,6 @@ describe("Query API Route", () => {
     });
 
     it("should forward backend errors", async () => {
-      mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
       server.use(
         http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json({ detail: "Rate limit exceeded" }, { status: 429 });
@@ -122,7 +100,6 @@ describe("Query API Route", () => {
     });
 
     it("should return 500 when backend fetch fails", async () => {
-      mockAuth.mockResolvedValue({ userId: "test-user-id" } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
       server.use(
         http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.error();

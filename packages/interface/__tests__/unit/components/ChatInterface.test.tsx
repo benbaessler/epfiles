@@ -9,26 +9,6 @@ vi.mock("@/lib/gdrive-links", () => ({
   getGDriveLink: vi.fn(() => null),
 }));
 
-// Mock Clerk - configurable user state
-vi.mock("@clerk/nextjs", () => ({
-  useUser: () => ({
-    isSignedIn: true,
-    isLoaded: true,
-    user: {
-      id: "test-user-id",
-      firstName: "Test",
-      lastName: "User",
-    },
-  }),
-  useClerk: () => ({
-    openSignIn: vi.fn(),
-    signOut: vi.fn(),
-  }),
-  SignInButton: ({ children }: { children: React.ReactNode }) => children,
-  SignUpButton: ({ children }: { children: React.ReactNode }) => children,
-  UserButton: () => null,
-}));
-
 // Mock layout context
 vi.mock("@/lib/layout-context", () => ({
   useLayout: () => ({

@@ -132,42 +132,6 @@ afterEach(() => server.resetHandlers());
 // Close server after all tests
 afterAll(() => server.close());
 
-// Mock Clerk auth
-vi.mock("@clerk/nextjs", () => ({
-  useUser: vi.fn(() => ({
-    isSignedIn: true,
-    isLoaded: true,
-    user: {
-      id: "test-user-id",
-      firstName: "Test",
-      lastName: "User",
-    },
-  })),
-  useClerk: vi.fn(() => ({
-    openSignIn: vi.fn(),
-    signOut: vi.fn(),
-  })),
-  SignInButton: ({ children }: { children: React.ReactNode }) => children,
-  SignUpButton: ({ children }: { children: React.ReactNode }) => children,
-  UserButton: () => null,
-}));
-
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: vi.fn(() =>
-    Promise.resolve({
-      userId: "test-user-id",
-    })
-  ),
-  currentUser: vi.fn(() =>
-    Promise.resolve({
-      id: "test-user-id",
-      firstName: "Test",
-      lastName: "User",
-    })
-  ),
-  clerkMiddleware: vi.fn(() => vi.fn()),
-}));
-
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
   useRouter: vi.fn(() => ({
