@@ -5,12 +5,15 @@ from typing import List, Dict, Optional
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from uuid import UUID
-from datetime import datetime
+import logging
 from app.core.config import get_settings
-from app.services.rag_service import RAGService
+from app.services.rag_service import RAGService, RAGServiceError
 from app.core.bootstrap import download_db_if_missing
 from app.core.database import init_db, get_db
 from app.services.db_service import DatabaseService
+from app.services.rate_limiter import get_rate_limiter, RateLimitExceeded
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -24,13 +27,18 @@ def get_user_id(x_user_id: Optional[str] = Header(None)) -> str:
     return x_user_id
 
 # Lazy RAG service - initialized after DB download in lifespan
-_rag_service: RAGService = None
+_rag_service: Optional[RAGService] = None
 
 def get_rag_service() -> RAGService:
     """Dependency to get the RAG service instance."""
     if _rag_service is None:
         raise HTTPException(status_code=503, detail="RAG service not initialized")
     return _rag_service
+
+
+# Free tier configuration
+FREE_MESSAGE_LIMIT = 10
+RATE_LIMIT_WINDOW_SECONDS = 86400  # 24 hours
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,6 +47,8 @@ async def lifespan(app: FastAPI):
     download_db_if_missing()
     # Initialize PostgreSQL database tables
     init_db()
+    # Initialize rate limiter
+    get_rate_limiter(max_requests=FREE_MESSAGE_LIMIT, window_seconds=RATE_LIMIT_WINDOW_SECONDS)
     # NOW initialize RAG service (after DB is downloaded)
     _rag_service = RAGService()
     yield
@@ -109,8 +119,50 @@ async def root():
     }
 
 @app.get("/health")
-async def health():
-    return {"status": "healthy"}
+async def health(db: Session = Depends(get_db)):
+    """
+    Health check endpoint that verifies all dependencies.
+    
+    Returns:
+        Health status including database and vector store connectivity
+    """
+    from app.core.database import check_db_health
+    
+    health_status = {
+        "status": "healthy",
+        "checks": {
+            "database": "unknown",
+            "vector_store": "unknown",
+        }
+    }
+    
+    # Check PostgreSQL
+    try:
+        if check_db_health():
+            health_status["checks"]["database"] = "healthy"
+        else:
+            health_status["checks"]["database"] = "unhealthy"
+            health_status["status"] = "degraded"
+    except Exception:
+        health_status["checks"]["database"] = "unhealthy"
+        health_status["status"] = "degraded"
+    
+    # Check ChromaDB / RAG service
+    try:
+        if _rag_service is not None:
+            count = _rag_service.collection.count()
+            health_status["checks"]["vector_store"] = "healthy"
+            health_status["checks"]["vector_count"] = count
+        else:
+            health_status["checks"]["vector_store"] = "not_initialized"
+            health_status["status"] = "degraded"
+    except Exception:
+        health_status["checks"]["vector_store"] = "unhealthy"
+        health_status["status"] = "degraded"
+    
+    status_code = 200 if health_status["status"] == "healthy" else 503
+    from fastapi.responses import JSONResponse
+    return JSONResponse(content=health_status, status_code=status_code)
 
 
 @app.get("/api/conversations", response_model=List[ConversationResponse])
@@ -240,9 +292,6 @@ async def get_conversation_messages(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Free tier limit
-FREE_MESSAGE_LIMIT = 10
-
 @app.post("/api/query", response_model=QueryResponse)
 async def query_rag(
     request: QueryRequest,
@@ -250,7 +299,6 @@ async def query_rag(
     db: Session = Depends(get_db),
     rag_service: RAGService = Depends(get_rag_service),
     x_xai_api_key: Optional[str] = Header(None, alias="X-XAI-API-Key"),
-    x_message_count: Optional[str] = Header(None, alias="X-Message-Count")
 ):
     """
     Query the Epstein files using RAG with conversation history.
@@ -262,25 +310,15 @@ async def query_rag(
     
     Optional headers:
     - X-XAI-API-Key: User-provided xAI API key for unlimited usage
-    - X-Message-Count: Current message count for free tier validation
     """
-    # Check free tier limits (skip in development)
+    # Check server-side rate limits (skip in development or if user has API key)
     user_api_key = x_xai_api_key
     if not user_api_key and settings.app_env != "development":
-        # Parse message count
-        message_count = 0
-        if x_message_count:
-            try:
-                message_count = int(x_message_count)
-            except ValueError:
-                pass
-        
-        # Check if free tier exceeded
-        if message_count >= FREE_MESSAGE_LIMIT:
-            raise HTTPException(
-                status_code=402,
-                detail="Free tier limit reached. Please provide your xAI API key for unlimited usage."
-            )
+        rate_limiter = get_rate_limiter()
+        try:
+            rate_limiter.check_rate_limit(user_id)
+        except RateLimitExceeded as e:
+            raise HTTPException(status_code=402, detail=str(e))
     
     try:
         db_service = DatabaseService(db)
@@ -300,8 +338,11 @@ async def query_rag(
             session_id = conversation.session_id
             is_new_conversation = True
         
-        # Get conversation history
-        messages = db_service.get_conversation_history(session_id)
+        # Get recent conversation history (optimized - only loads last N messages)
+        messages = db_service.get_recent_conversation_history(
+            session_id, 
+            limit=settings.max_history_messages
+        )
         conversation_history = [
             {"role": msg.role, "content": msg.content}
             for msg in messages
@@ -337,6 +378,11 @@ async def query_rag(
             token_count=result["usage"]["completion_tokens"]
         )
         
+        # Record the request for rate limiting (only for free tier users)
+        if not user_api_key and settings.app_env != "development":
+            rate_limiter = get_rate_limiter()
+            rate_limiter.record_request(user_id)
+        
         # Add session_id to response
         result["session_id"] = str(session_id)
         
@@ -345,8 +391,12 @@ async def query_rag(
         raise HTTPException(status_code=400, detail="Invalid session_id format")
     except HTTPException:
         raise
+    except RAGServiceError as e:
+        logger.error(f"RAG service error for user {user_id}: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Unexpected error in query_rag for user {user_id}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 @app.delete("/api/conversations/{session_id}")
