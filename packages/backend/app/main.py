@@ -17,6 +17,8 @@ settings = get_settings()
 
 def get_user_id(x_user_id: Optional[str] = Header(None)) -> str:
     """Extract and validate user ID from X-User-Id header."""
+    if settings.app_env == "development":
+        return x_user_id or "dev-user"
     if not x_user_id:
         raise HTTPException(status_code=401, detail="X-User-Id header required")
     return x_user_id
@@ -238,12 +240,17 @@ async def get_conversation_messages(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Free tier limit
+FREE_MESSAGE_LIMIT = 10
+
 @app.post("/api/query", response_model=QueryResponse)
 async def query_rag(
     request: QueryRequest,
     user_id: str = Depends(get_user_id),
     db: Session = Depends(get_db),
-    rag_service: RAGService = Depends(get_rag_service)
+    rag_service: RAGService = Depends(get_rag_service),
+    x_xai_api_key: Optional[str] = Header(None, alias="X-XAI-API-Key"),
+    x_message_count: Optional[str] = Header(None, alias="X-Message-Count")
 ):
     """
     Query the Epstein files using RAG with conversation history.
@@ -252,7 +259,29 @@ async def query_rag(
     Returns an answer with citations from the document corpus.
     If session_id is provided, uses conversation history for context.
     If not provided, creates a new conversation session.
+    
+    Optional headers:
+    - X-XAI-API-Key: User-provided xAI API key for unlimited usage
+    - X-Message-Count: Current message count for free tier validation
     """
+    # Check free tier limits (skip in development)
+    user_api_key = x_xai_api_key
+    if not user_api_key and settings.app_env != "development":
+        # Parse message count
+        message_count = 0
+        if x_message_count:
+            try:
+                message_count = int(x_message_count)
+            except ValueError:
+                pass
+        
+        # Check if free tier exceeded
+        if message_count >= FREE_MESSAGE_LIMIT:
+            raise HTTPException(
+                status_code=402,
+                detail="Free tier limit reached. Please provide your xAI API key for unlimited usage."
+            )
+    
     try:
         db_service = DatabaseService(db)
         is_new_conversation = False
@@ -293,8 +322,11 @@ async def query_rag(
                 title = title.rsplit(' ', 1)[0] + '...'
             db_service.update_conversation_title(session_id, title)
         
-        # Query RAG with conversation history
-        result = rag_service.query(request.query, conversation_history)
+        # Query RAG with conversation history (use user's API key if provided)
+        if user_api_key:
+            result = rag_service.query_with_key(request.query, user_api_key, conversation_history)
+        else:
+            result = rag_service.query(request.query, conversation_history)
         
         # Store assistant response
         db_service.add_message(

@@ -92,6 +92,7 @@ class Settings(BaseSettings):
     class Config:
         # Load from root .env first, fall back to local .env
         env_file = (str(ROOT_ENV_PATH), ".env")
+        extra = "ignore"  # Ignore extra env vars (e.g., Clerk keys for interface)
 
 @lru_cache()
 def get_settings():

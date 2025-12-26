@@ -101,12 +101,11 @@ class RAGService:
 
         return prompt
 
-    def generate_response(self, prompt: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, str]:
-        """Generate response using configured LLM provider with conversation history."""
+    def _build_messages(self, prompt: str, conversation_history: List[Dict[str, str]] = None) -> List[Dict[str, str]]:
+        """Build the messages array with system prompt, history, and current prompt."""
         if conversation_history is None:
             conversation_history = []
         
-        # Build messages array with history
         messages = [
             {"role": "system", "content": "You are a helpful assistant with access to the Epstein document files. Answer document-related questions using the provided context, and answer general questions using your knowledge. Only reference documents when you actually use them."}
         ]
@@ -119,7 +118,13 @@ class RAGService:
         # Add current prompt as the latest user message
         messages.append({"role": "user", "content": prompt})
         
-        # Generate response using xAI
+        return messages
+
+    def generate_response(self, prompt: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, str]:
+        """Generate response using configured LLM provider with conversation history."""
+        messages = self._build_messages(prompt, conversation_history)
+        
+        # Generate response using xAI (server's API key)
         response = self.xai_client.chat.completions.create(
             model=settings.llm_model,
             messages=messages,
@@ -138,6 +143,68 @@ class RAGService:
             }
         }
 
+    def generate_response_with_key(self, prompt: str, api_key: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, str]:
+        """Generate response using user-provided xAI API key."""
+        messages = self._build_messages(prompt, conversation_history)
+        
+        # Create ephemeral client with user's API key
+        user_xai_client = OpenAI(
+            api_key=api_key,
+            base_url=settings.xai_base_url
+        )
+        
+        # Generate response using user's API key
+        response = user_xai_client.chat.completions.create(
+            model=settings.llm_model,
+            messages=messages,
+            max_tokens=settings.llm_max_tokens,
+            temperature=settings.llm_temperature
+        )
+
+        return {
+            "answer": response.choices[0].message.content,
+            "model": settings.llm_model,
+            "finish_reason": response.choices[0].finish_reason,
+            "usage": {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens
+            }
+        }
+
+    def _process_response(self, user_query: str, chunks: List[Dict], response_data: Dict) -> Dict:
+        """Process the LLM response and return formatted result."""
+        answer = response_data["answer"]
+        finish_reason = response_data.get("finish_reason", "stop")
+        
+        if finish_reason == "content_filter" or not answer:
+            return {
+                "query": user_query,
+                "answer": "I'm unable to provide a response to this query due to content policy restrictions.",
+                "sources": [],
+                "model": response_data["model"],
+                "usage": response_data["usage"]
+            }
+        
+        # Parse response for source usage indicator and clean answer
+        sources_used = False
+        
+        if answer.startswith("[SOURCES_USED]"):
+            sources_used = True
+            answer = answer.replace("[SOURCES_USED]", "", 1).strip()
+        elif answer.startswith("[NO_SOURCES_USED]"):
+            sources_used = False
+            answer = answer.replace("[NO_SOURCES_USED]", "", 1).strip()
+
+        # Return full result (only include sources if they were used)
+        return {
+            "query": user_query,
+            "answer": answer,
+            "sources": chunks if sources_used else [],
+            "model": response_data["model"],
+            "usage": response_data["usage"]
+        }
+
     def query(self, user_query: str, conversation_history: List[Dict[str, str]] = None) -> Dict:
         """Main RAG pipeline: embed, retrieve, generate with conversation history."""
         if conversation_history is None:
@@ -152,37 +219,28 @@ class RAGService:
         # Step 3: Build prompt
         prompt = self.build_rag_prompt(user_query, chunks)
 
-        # Step 4: Generate response with conversation history
+        # Step 4: Generate response with conversation history (using server's API key)
         response_data = self.generate_response(prompt, conversation_history)
 
-        # Step 5: Check for content filtering or empty responses
-        answer = response_data["answer"]
-        finish_reason = response_data.get("finish_reason", "stop")
-        
-        if finish_reason == "content_filter" or not answer:
-            return {
-                "query": user_query,
-                "answer": "I'm unable to provide a response to this query due to content policy restrictions.",
-                "sources": [],
-                "model": response_data["model"],
-                "usage": response_data["usage"]
-            }
-        
-        # Step 6: Parse response for source usage indicator and clean answer
-        sources_used = False
-        
-        if answer.startswith("[SOURCES_USED]"):
-            sources_used = True
-            answer = answer.replace("[SOURCES_USED]", "", 1).strip()
-        elif answer.startswith("[NO_SOURCES_USED]"):
-            sources_used = False
-            answer = answer.replace("[NO_SOURCES_USED]", "", 1).strip()
+        # Step 5: Process and return result
+        return self._process_response(user_query, chunks, response_data)
 
-        # Step 7: Return full result (only include sources if they were used)
-        return {
-            "query": user_query,
-            "answer": answer,
-            "sources": chunks if sources_used else [],
-            "model": response_data["model"],
-            "usage": response_data["usage"]
-        }
+    def query_with_key(self, user_query: str, api_key: str, conversation_history: List[Dict[str, str]] = None) -> Dict:
+        """Main RAG pipeline using user-provided xAI API key for LLM generation."""
+        if conversation_history is None:
+            conversation_history = []
+
+        # Step 1: Embed query (still uses server's OpenAI key for embeddings)
+        query_embedding = self.embed_query(user_query)
+
+        # Step 2: Retrieve relevant chunks
+        chunks = self.retrieve_chunks(query_embedding)
+
+        # Step 3: Build prompt
+        prompt = self.build_rag_prompt(user_query, chunks)
+
+        # Step 4: Generate response with user's API key
+        response_data = self.generate_response_with_key(prompt, api_key, conversation_history)
+
+        # Step 5: Process and return result
+        return self._process_response(user_query, chunks, response_data)
