@@ -1,9 +1,33 @@
 from typing import List, Dict
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 import chromadb
+import logging
 from app.core.config import get_settings
+from app.services.embedding_cache import get_embedding_cache
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
+
+
+class RAGServiceError(Exception):
+    """Base exception for RAG service errors."""
+    pass
+
+
+class EmbeddingError(RAGServiceError):
+    """Error generating embeddings."""
+    pass
+
+
+class RetrievalError(RAGServiceError):
+    """Error retrieving chunks from vector store."""
+    pass
+
+
+class LLMError(RAGServiceError):
+    """Error generating LLM response."""
+    pass
+
 
 class RAGService:
     """Handles RAG operations: embedding queries, retrieving chunks, generating responses."""
@@ -25,18 +49,46 @@ class RAGService:
         self.collection = self.chroma_client.get_or_create_collection(name=settings.collection_name)
         
         if self.collection.count() == 0:
-            print(f"WARNING: Collection '{settings.collection_name}' is empty. RAG will not work until data is ingested.")
+            logger.warning(f"Collection '{settings.collection_name}' is empty. RAG will not work until data is ingested.")
         
         if not self.xai_client:
-            print("WARNING: No XAI_API_KEY configured. Users must provide their own key via X-XAI-API-Key header.")
+            logger.warning("No XAI_API_KEY configured. Users must provide their own key via X-XAI-API-Key header.")
 
-    def embed_query(self, query: str) -> List[float]:
-        """Generate embedding for user query."""
-        response = self.openai_client.embeddings.create(
-            model=settings.embedding_model,
-            input=query
-        )
-        return response.data[0].embedding
+    def embed_query(self, query: str, use_cache: bool = True) -> List[float]:
+        """
+        Generate embedding for user query with optional caching.
+        
+        Args:
+            query: The query text to embed
+            use_cache: Whether to use the embedding cache (default: True)
+            
+        Returns:
+            Embedding vector as a list of floats
+        """
+        cache = get_embedding_cache()
+        
+        # Check cache first
+        if use_cache:
+            cached = cache.get(query)
+            if cached is not None:
+                logger.debug(f"Embedding cache hit for query")
+                return cached
+        
+        try:
+            response = self.openai_client.embeddings.create(
+                model=settings.embedding_model,
+                input=query
+            )
+            embedding = response.data[0].embedding
+            
+            # Cache the result
+            if use_cache:
+                cache.set(query, embedding)
+            
+            return embedding
+        except OpenAIError as e:
+            logger.error(f"Failed to generate embedding: {e}")
+            raise EmbeddingError(f"Failed to generate embedding: {e}") from e
 
     def retrieve_chunks(self, query_embedding: List[float], top_k: int = None, min_similarity: float = None) -> List[Dict]:
         """Retrieve up to top-k most relevant chunks from ChromaDB, filtered by similarity threshold."""
@@ -45,10 +97,14 @@ class RAGService:
         if min_similarity is None:
             min_similarity = settings.min_similarity_threshold
 
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k
-        )
+        try:
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=top_k
+            )
+        except Exception as e:
+            logger.error(f"Failed to retrieve chunks from ChromaDB: {e}")
+            raise RetrievalError(f"Failed to retrieve documents: {e}") from e
 
         chunks = []
         for i in range(len(results['ids'][0])):
@@ -127,17 +183,21 @@ class RAGService:
     def generate_response(self, prompt: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, str]:
         """Generate response using configured LLM provider with conversation history."""
         if not self.xai_client:
-            raise RuntimeError("No server-side xAI API key configured. User must provide key via X-XAI-API-Key header.")
+            raise LLMError("No server-side xAI API key configured. User must provide key via X-XAI-API-Key header.")
         
         messages = self._build_messages(prompt, conversation_history)
         
-        # Generate response using xAI (server's API key)
-        response = self.xai_client.chat.completions.create(
-            model=settings.llm_model,
-            messages=messages,
-            max_tokens=settings.llm_max_tokens,
-            temperature=settings.llm_temperature
-        )
+        try:
+            # Generate response using xAI (server's API key)
+            response = self.xai_client.chat.completions.create(
+                model=settings.llm_model,
+                messages=messages,
+                max_tokens=settings.llm_max_tokens,
+                temperature=settings.llm_temperature
+            )
+        except OpenAIError as e:
+            logger.error(f"LLM generation failed: {e}")
+            raise LLMError(f"Failed to generate response: {e}") from e
 
         return {
             "answer": response.choices[0].message.content,
@@ -160,13 +220,17 @@ class RAGService:
             base_url=settings.xai_base_url
         )
         
-        # Generate response using user's API key
-        response = user_xai_client.chat.completions.create(
-            model=settings.llm_model,
-            messages=messages,
-            max_tokens=settings.llm_max_tokens,
-            temperature=settings.llm_temperature
-        )
+        try:
+            # Generate response using user's API key
+            response = user_xai_client.chat.completions.create(
+                model=settings.llm_model,
+                messages=messages,
+                max_tokens=settings.llm_max_tokens,
+                temperature=settings.llm_temperature
+            )
+        except OpenAIError as e:
+            logger.error(f"LLM generation with user key failed: {e}")
+            raise LLMError(f"Failed to generate response: {e}") from e
 
         return {
             "answer": response.choices[0].message.content,
