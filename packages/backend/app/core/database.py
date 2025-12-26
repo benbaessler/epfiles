@@ -1,17 +1,19 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
+import logging
 from app.core.config import get_settings
 from app.models.database import Base
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
-# Create SQLAlchemy engine
+# Create SQLAlchemy engine with configurable pool settings
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,  # Verify connections before using them
-    pool_size=5,
-    max_overflow=10
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
 )
 
 # Create session factory
@@ -25,9 +27,9 @@ def init_db():
     """
     try:
         Base.metadata.create_all(bind=engine)
-        print("✅ Database tables created successfully")
+        logger.info("Database tables created successfully")
     except Exception as e:
-        print(f"❌ Error creating database tables: {e}")
+        logger.error(f"Error creating database tables: {e}")
         raise
 
 
@@ -72,9 +74,9 @@ def check_db_health() -> bool:
     """
     try:
         with get_db_context() as db:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
         return True
     except Exception as e:
-        print(f"Database health check failed: {e}")
+        logger.warning(f"Database health check failed: {e}")
         return False
 

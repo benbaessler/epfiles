@@ -7,9 +7,6 @@ from app.core.config import get_settings
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
-# Default ChromaDB download URL (override with CHROMADB_DOWNLOAD_URL env var)
-DEFAULT_CHROMADB_URL = "https://pub-bb289fb1eb1845dda7000f73a13d37cd.r2.dev/chroma_db.zip"
-
 def _has_vector_data(db_path: str) -> bool:
     """Check if ChromaDB has actual vector data (not just an empty initialized DB)."""
     if not os.path.exists(db_path):
@@ -33,12 +30,12 @@ def download_db_if_missing():
     
     # Check if ChromaDB has actual vector data (not just an empty shell)
     if _has_vector_data(db_path):
-        print("✅ ChromaDB with vector data found. Skipping download.")
+        logger.info("ChromaDB with vector data found. Skipping download.")
         return
 
-    db_url = os.getenv("CHROMADB_DOWNLOAD_URL", DEFAULT_CHROMADB_URL)
+    db_url = settings.chromadb_download_url
 
-    print(f"⬇️ Downloading ChromaDB from {db_url}...")
+    logger.info(f"Downloading ChromaDB from {db_url}...")
     
     zip_path = "chroma_db.zip"
     
@@ -51,16 +48,16 @@ def download_db_if_missing():
                 f.write(resp.content)
         
         # Extract
-        print("📦 Extracting database...")
+        logger.info("Extracting database...")
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(".")  # Extracts to current dir (should contain chroma_db folder)
             
         # Cleanup
         if os.path.exists(zip_path):
             os.remove(zip_path)
-        print("✅ Database setup complete!")
+        logger.info("Database setup complete!")
         
     except Exception as e:
-        print(f"❌ Failed to download database: {e}")
+        logger.error(f"Failed to download database: {e}")
         # Don't crash, just let the app start empty
 

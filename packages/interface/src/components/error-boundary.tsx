@@ -24,7 +24,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    // Error boundary errors are always logged as they indicate React tree failures
+    if (process.env.NEXT_PUBLIC_APP_ENV !== "production") {
+      console.error("ErrorBoundary caught an error:", error, errorInfo);
+    }
 
     posthog.capture("$exception", {
       $exception_message: error.message,
