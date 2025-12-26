@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # Conversation Settings
     max_history_messages: int = 10  # Maximum conversation history to send to LLM
 
+    # Rate Limiting / Free Tier
+    free_message_limit: int = 10  # Free tier message limit before requiring API key
+    rate_limit_window_seconds: int = 86400  # Time window for rate limiting (default: 24 hours)
+
     # API Settings
     api_title: str = "Epstein Files RAG API"
     api_version: str = "1.0.0"

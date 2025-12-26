@@ -36,10 +36,6 @@ def get_rag_service() -> RAGService:
     return _rag_service
 
 
-# Free tier configuration
-FREE_MESSAGE_LIMIT = 10
-RATE_LIMIT_WINDOW_SECONDS = 86400  # 24 hours
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _rag_service
@@ -47,8 +43,11 @@ async def lifespan(app: FastAPI):
     download_db_if_missing()
     # Initialize PostgreSQL database tables
     init_db()
-    # Initialize rate limiter
-    get_rate_limiter(max_requests=FREE_MESSAGE_LIMIT, window_seconds=RATE_LIMIT_WINDOW_SECONDS)
+    # Initialize rate limiter (using settings from env vars)
+    get_rate_limiter(
+        max_requests=settings.free_message_limit,
+        window_seconds=settings.rate_limit_window_seconds
+    )
     # NOW initialize RAG service (after DB is downloaded)
     _rag_service = RAGService()
     yield
