@@ -68,16 +68,10 @@ next-env.d.ts
 # Vercel
 .vercel
 
-# Raw source files (too large for git)
-packages/dataset/raw/
-packages/dataset/repos/
-packages/dataset/extracted/
-packages/dataset/clean/
-packages/dataset/thirdparty/
-packages/dataset/chunks/
-packages/dataset/finetune/
-packages/dataset/training/
-
 # ChromaDB vector store (regeneratable)
 packages/backend/chroma_db/
 chroma_db/
+
+# Markdown files (except README.md)
+*.md
+!README.md

@@ -1,5 +1,7 @@
 .env
 venv/
+env_name/
 __pycache__/
 .DS_Store
 chroma_db/
+data/
