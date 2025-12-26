@@ -4,6 +4,7 @@ import {
   fetchMessages,
   sendQuery,
   deleteConversation,
+  ApiKeyError,
 } from "@/lib/api";
 import { server } from "../../setup";
 import { http, HttpResponse } from "msw";
@@ -150,6 +151,320 @@ describe("API Client", () => {
       await expect(deleteConversation("invalid-session")).rejects.toThrow(
         "Failed to delete conversation"
       );
+    });
+  });
+
+  describe("ApiKeyError class", () => {
+    it("should be an instance of Error", () => {
+      const error = new ApiKeyError();
+      expect(error).toBeInstanceOf(Error);
+      expect(error).toBeInstanceOf(ApiKeyError);
+    });
+
+    it("should have default message", () => {
+      const error = new ApiKeyError();
+      expect(error.message).toBe("Invalid API key or insufficient credit balance");
+    });
+
+    it("should accept custom message", () => {
+      const error = new ApiKeyError("Custom API key error");
+      expect(error.message).toBe("Custom API key error");
+    });
+
+    it("should have correct name property", () => {
+      const error = new ApiKeyError();
+      expect(error.name).toBe("ApiKeyError");
+    });
+  });
+
+  describe("sendQuery API key error detection", () => {
+    it("should throw ApiKeyError on 401 status", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Unauthorized" },
+            { status: 401 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow(ApiKeyError);
+    });
+
+    it("should throw ApiKeyError on 403 status", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Forbidden" },
+            { status: 403 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow(ApiKeyError);
+    });
+
+    it("should throw ApiKeyError when detail contains 'api key'", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Invalid API key provided" },
+            { status: 400 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow(ApiKeyError);
+    });
+
+    it("should throw ApiKeyError when detail contains 'api_key'", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "The api_key is invalid" },
+            { status: 400 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow(ApiKeyError);
+    });
+
+    it("should throw ApiKeyError when detail contains 'authentication'", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Authentication failed" },
+            { status: 400 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow(ApiKeyError);
+    });
+
+    it("should throw ApiKeyError when detail contains 'unauthorized'", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "User is unauthorized" },
+            { status: 400 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow(ApiKeyError);
+    });
+
+    it("should throw ApiKeyError when detail contains 'invalid key'", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Invalid key format" },
+            { status: 400 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow(ApiKeyError);
+    });
+
+    it("should throw ApiKeyError when detail contains 'incorrect api key'", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Incorrect API key provided" },
+            { status: 400 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow(ApiKeyError);
+    });
+
+    it("should include error detail in ApiKeyError message", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Your API key has expired" },
+            { status: 401 }
+          );
+        })
+      );
+
+      try {
+        await sendQuery("Test");
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiKeyError);
+        expect((error as ApiKeyError).message).toBe("Your API key has expired");
+      }
+    });
+
+    it("should NOT throw ApiKeyError for unrelated errors", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Rate limit exceeded" },
+            { status: 429 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow("Rate limit exceeded");
+      await expect(sendQuery("Test")).rejects.not.toThrow(ApiKeyError);
+    });
+
+    it("should NOT throw ApiKeyError for server errors without API key keywords", async () => {
+      server.use(
+        http.post("/api/query", () => {
+          return HttpResponse.json(
+            { detail: "Internal server error" },
+            { status: 500 }
+          );
+        })
+      );
+
+      await expect(sendQuery("Test")).rejects.toThrow("Internal server error");
+      await expect(sendQuery("Test")).rejects.not.toThrow(ApiKeyError);
+    });
+  });
+
+  describe("sendQuery with options object", () => {
+    it("should accept options object format", async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.post("/api/query", async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(mockQueryResponse);
+        })
+      );
+
+      await sendQuery({
+        query: "Options test",
+        sessionId: "opt-session",
+        topK: 8,
+      });
+
+      expect(capturedBody).toMatchObject({
+        query: "Options test",
+        session_id: "opt-session",
+        top_k: 8,
+      });
+    });
+
+    it("should use default topK when not specified in options", async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.post("/api/query", async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(mockQueryResponse);
+        })
+      );
+
+      await sendQuery({ query: "Default topK test" });
+
+      expect(capturedBody).toMatchObject({
+        query: "Default topK test",
+        top_k: 5,
+      });
+    });
+
+    it("should send API key header when provided", async () => {
+      let capturedHeaders: Headers | null = null;
+
+      server.use(
+        http.post("/api/query", async ({ request }) => {
+          capturedHeaders = request.headers;
+          return HttpResponse.json(mockQueryResponse);
+        })
+      );
+
+      await sendQuery({
+        query: "API key test",
+        apiKey: "xai-test-key-12345",
+      });
+
+      expect(capturedHeaders?.get("X-XAI-API-Key")).toBe("xai-test-key-12345");
+    });
+
+    it("should NOT send API key header when not provided", async () => {
+      let capturedHeaders: Headers | null = null;
+
+      server.use(
+        http.post("/api/query", async ({ request }) => {
+          capturedHeaders = request.headers;
+          return HttpResponse.json(mockQueryResponse);
+        })
+      );
+
+      await sendQuery({ query: "No API key" });
+
+      expect(capturedHeaders?.get("X-XAI-API-Key")).toBeNull();
+    });
+
+    it("should send message count header when provided", async () => {
+      let capturedHeaders: Headers | null = null;
+
+      server.use(
+        http.post("/api/query", async ({ request }) => {
+          capturedHeaders = request.headers;
+          return HttpResponse.json(mockQueryResponse);
+        })
+      );
+
+      await sendQuery({
+        query: "Message count test",
+        messageCount: 7,
+      });
+
+      expect(capturedHeaders?.get("X-Message-Count")).toBe("7");
+    });
+
+    it("should NOT send message count header when undefined", async () => {
+      let capturedHeaders: Headers | null = null;
+
+      server.use(
+        http.post("/api/query", async ({ request }) => {
+          capturedHeaders = request.headers;
+          return HttpResponse.json(mockQueryResponse);
+        })
+      );
+
+      await sendQuery({ query: "No message count" });
+
+      expect(capturedHeaders?.get("X-Message-Count")).toBeNull();
+    });
+
+    it("should handle all options together", async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      let capturedHeaders: Headers | null = null;
+
+      server.use(
+        http.post("/api/query", async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          capturedHeaders = request.headers;
+          return HttpResponse.json(mockQueryResponse);
+        })
+      );
+
+      await sendQuery({
+        query: "Full options test",
+        sessionId: "full-session",
+        topK: 10,
+        apiKey: "xai-full-key",
+        messageCount: 15,
+      });
+
+      expect(capturedBody).toMatchObject({
+        query: "Full options test",
+        session_id: "full-session",
+        top_k: 10,
+      });
+      expect(capturedHeaders?.get("X-XAI-API-Key")).toBe("xai-full-key");
+      expect(capturedHeaders?.get("X-Message-Count")).toBe("15");
     });
   });
 });
