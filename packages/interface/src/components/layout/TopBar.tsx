@@ -1,7 +1,6 @@
 "use client";
 
 import { Settings, HelpCircle, Menu, KeyRound, Scale } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { Popover } from "@base-ui-components/react/popover";
 import { AuthButtons } from "@/components/auth/AuthButtons";
 
@@ -13,7 +12,6 @@ interface TopBarProps {
 }
 
 export function TopBar({ hasApiKey, isSignedIn, onSettingsClick, onMenuClick }: TopBarProps) {
-  const router = useRouter();
 
   return (
     <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 bg-[#D9D9D9] border-b border-[#c4c4c4]">
@@ -68,7 +66,7 @@ export function TopBar({ hasApiKey, isSignedIn, onSettingsClick, onMenuClick }: 
                     <span>Manage API key</span>
                   </Popover.Close>
                   <Popover.Close
-                    onClick={() => router.push("/legal")}
+                    onClick={() => window.open("/legal", "_blank")}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#060823] hover:bg-[#f0f0f0] cursor-pointer transition-colors text-left"
                   >
                     <Scale className="h-4 w-4 text-[#5a5a5a]" />
@@ -84,9 +82,7 @@ export function TopBar({ hasApiKey, isSignedIn, onSettingsClick, onMenuClick }: 
 
         {/* Help button */}
         <button
-          onClick={() => {
-            // TODO: Implement How it works functionality
-          }}
+          onClick={() => window.open("/about", "_blank")}
           className="text-[#060823] hover:bg-black/5 rounded-lg cursor-pointer w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shrink-0"
           title="How it works"
         >
