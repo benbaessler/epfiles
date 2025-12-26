@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Dialog } from "@base-ui-components/react/dialog";
-import { Eye, EyeOff, ExternalLink, Pencil, X } from "lucide-react";
+import { Checkbox } from "@base-ui-components/react/checkbox";
+import { Eye, EyeOff, ExternalLink, Pencil, X, Check } from "lucide-react";
 
 interface ApiKeyModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingKey: string | null;
-  onSave: (key: string) => void;
+  onSave: (key: string, remember: boolean) => void;
   onRemove: () => void;
+  rememberKey: boolean;
+  onRememberKeyChange: (remember: boolean) => void;
 }
 
 function maskApiKey(key: string): string {
@@ -25,11 +28,14 @@ export function ApiKeyModal({
   existingKey,
   onSave,
   onRemove,
+  rememberKey,
+  onRememberKeyChange,
 }: ApiKeyModalProps) {
   const [inputValue, setInputValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditingKey, setIsEditingKey] = useState(false);
+  const [localRemember, setLocalRemember] = useState(rememberKey);
 
   const hasExistingKey = existingKey !== null && existingKey.length > 0;
 
@@ -40,15 +46,19 @@ export function ApiKeyModal({
       setShowPassword(false);
       setError(null);
       setIsEditingKey(false);
+      setLocalRemember(rememberKey);
     }
-  }, [open]);
+  }, [open, rememberKey]);
 
   const handleSave = () => {
     const trimmedKey = inputValue.trim();
 
     if (!trimmedKey) {
       if (hasExistingKey && !isEditingKey) {
-        // No changes made, just close
+        // Check if only remember preference changed
+        if (localRemember !== rememberKey) {
+          onRememberKeyChange(localRemember);
+        }
         onOpenChange(false);
         return;
       }
@@ -67,7 +77,7 @@ export function ApiKeyModal({
       return;
     }
 
-    onSave(trimmedKey);
+    onSave(trimmedKey, localRemember);
     onOpenChange(false);
   };
 
@@ -193,6 +203,28 @@ export function ApiKeyModal({
               </div>
             </div>
             {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+          </div>
+
+          <div className="mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox.Root
+                checked={localRemember}
+                onCheckedChange={(checked) => setLocalRemember(checked === true)}
+                className="flex h-4 w-4 items-center justify-center rounded border border-[#c4c4c4] bg-white data-[checked]:bg-[#161F81] data-[checked]:border-[#161F81] transition-colors"
+              >
+                <Checkbox.Indicator className="text-white">
+                  <Check className="h-3 w-3" />
+                </Checkbox.Indicator>
+              </Checkbox.Root>
+              <span className="text-sm text-[#060823]">
+                Remember on this device
+              </span>
+            </label>
+            <p className="mt-1 ml-6 text-xs text-zinc-500">
+              {localRemember
+                ? "Your key will persist across browser sessions"
+                : "Your key will be cleared when you close the browser"}
+            </p>
           </div>
 
           <div className="mb-6 p-3 bg-zinc-50 rounded border border-zinc-200">

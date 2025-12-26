@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import {
+  encryptValue,
+  decryptValue,
+  isEncryptionSupported,
+} from "@/lib/crypto";
 
 const STORAGE_KEYS = {
   messageCount: "epfiles_message_count",
-  apiKey: "epfiles_xai_api_key",
+  apiKeyEncrypted: "epfiles_xai_api_key_encrypted",
+  rememberKey: "epfiles_remember_key",
+  // Legacy key for migration
+  apiKeyLegacy: "epfiles_xai_api_key",
 } as const;
 
 const FREE_MESSAGE_LIMIT = parseInt(
@@ -13,6 +21,8 @@ const FREE_MESSAGE_LIMIT = parseInt(
 );
 const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
 
+export type StorageMode = "persistent" | "session";
+
 interface UsageState {
   messageCount: number;
   remainingMessages: number;
@@ -20,14 +30,17 @@ interface UsageState {
   hasApiKey: boolean;
   hasReachedLimit: boolean;
   isLoaded: boolean;
+  rememberKey: boolean;
   incrementUsage: () => void;
-  setApiKey: (key: string) => void;
+  setApiKey: (key: string, remember?: boolean) => void;
   clearApiKey: () => void;
+  setRememberKey: (remember: boolean) => void;
 }
 
 // No-op functions for development mode
 const noop = () => {};
-const noopSetKey = (_key: string) => {};
+const noopSetKey = (_key: string, _remember?: boolean) => {};
+const noopSetRemember = (_remember: boolean) => {};
 
 export function useUsage(): UsageState {
   // In development, bypass usage limits entirely
@@ -39,9 +52,11 @@ export function useUsage(): UsageState {
       hasApiKey: false,
       hasReachedLimit: false,
       isLoaded: true,
+      rememberKey: true,
       incrementUsage: noop,
       setApiKey: noopSetKey,
       clearApiKey: noop,
+      setRememberKey: noopSetRemember,
     };
   }
 
@@ -52,26 +67,63 @@ function useUsageInner(): UsageState {
   const [messageCount, setMessageCount] = useState(0);
   const [apiKey, setApiKeyState] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [rememberKey, setRememberKeyState] = useState(true);
 
-  // Load from localStorage on mount
+  // Load from storage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const storedCount = localStorage.getItem(STORAGE_KEYS.messageCount);
-    const storedKey = localStorage.getItem(STORAGE_KEYS.apiKey);
-
-    if (storedCount) {
-      const parsed = parseInt(storedCount, 10);
-      if (!isNaN(parsed)) {
-        setMessageCount(parsed);
+    const loadData = async () => {
+      // Load message count from localStorage
+      const storedCount = localStorage.getItem(STORAGE_KEYS.messageCount);
+      if (storedCount) {
+        const parsed = parseInt(storedCount, 10);
+        if (!isNaN(parsed)) {
+          setMessageCount(parsed);
+        }
       }
-    }
 
-    if (storedKey) {
-      setApiKeyState(storedKey);
-    }
+      // Load remember preference (defaults to true)
+      const storedRemember = localStorage.getItem(STORAGE_KEYS.rememberKey);
+      const shouldRemember = storedRemember !== "false";
+      setRememberKeyState(shouldRemember);
 
-    setIsLoaded(true);
+      // Determine which storage to check based on remember preference
+      const storage = shouldRemember ? localStorage : sessionStorage;
+
+      // Try to load encrypted key
+      const encryptedKey = storage.getItem(STORAGE_KEYS.apiKeyEncrypted);
+      if (encryptedKey && isEncryptionSupported()) {
+        try {
+          const decryptedKey = await decryptValue(encryptedKey);
+          setApiKeyState(decryptedKey);
+        } catch {
+          // Decryption failed, clear invalid data
+          storage.removeItem(STORAGE_KEYS.apiKeyEncrypted);
+        }
+      } else {
+        // Migration: check for legacy unencrypted key
+        const legacyKey = localStorage.getItem(STORAGE_KEYS.apiKeyLegacy);
+        if (legacyKey) {
+          // Migrate to encrypted storage
+          setApiKeyState(legacyKey);
+          if (isEncryptionSupported()) {
+            try {
+              const encrypted = await encryptValue(legacyKey);
+              storage.setItem(STORAGE_KEYS.apiKeyEncrypted, encrypted);
+              // Remove legacy key after successful migration
+              localStorage.removeItem(STORAGE_KEYS.apiKeyLegacy);
+            } catch {
+              // Keep legacy key if encryption fails
+            }
+          }
+        }
+      }
+
+      setIsLoaded(true);
+    };
+
+    loadData();
   }, []);
 
   const incrementUsage = useCallback(() => {
@@ -84,19 +136,87 @@ function useUsageInner(): UsageState {
     });
   }, []);
 
-  const setApiKey = useCallback((key: string) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEYS.apiKey, key);
-    }
-    setApiKeyState(key);
-  }, []);
+  const setApiKey = useCallback(
+    async (key: string, remember?: boolean) => {
+      if (typeof window === "undefined") return;
+
+      // Use provided remember value or current state
+      const shouldRemember = remember ?? rememberKey;
+      const storage = shouldRemember ? localStorage : sessionStorage;
+
+      // Clear from both storages first
+      localStorage.removeItem(STORAGE_KEYS.apiKeyEncrypted);
+      sessionStorage.removeItem(STORAGE_KEYS.apiKeyEncrypted);
+      localStorage.removeItem(STORAGE_KEYS.apiKeyLegacy);
+
+      // Store encrypted key
+      if (isEncryptionSupported()) {
+        try {
+          const encrypted = await encryptValue(key);
+          storage.setItem(STORAGE_KEYS.apiKeyEncrypted, encrypted);
+        } catch {
+          // Fallback: store unencrypted if encryption fails
+          storage.setItem(STORAGE_KEYS.apiKeyLegacy, key);
+        }
+      } else {
+        // No encryption support, store as-is
+        storage.setItem(STORAGE_KEYS.apiKeyLegacy, key);
+      }
+
+      // Update remember preference
+      localStorage.setItem(
+        STORAGE_KEYS.rememberKey,
+        shouldRemember.toString()
+      );
+      setRememberKeyState(shouldRemember);
+
+      setApiKeyState(key);
+    },
+    [rememberKey]
+  );
 
   const clearApiKey = useCallback(() => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEYS.apiKey);
+      // Clear from both storages
+      localStorage.removeItem(STORAGE_KEYS.apiKeyEncrypted);
+      sessionStorage.removeItem(STORAGE_KEYS.apiKeyEncrypted);
+      localStorage.removeItem(STORAGE_KEYS.apiKeyLegacy);
     }
     setApiKeyState(null);
   }, []);
+
+  const setRememberKey = useCallback(
+    async (remember: boolean) => {
+      if (typeof window === "undefined") return;
+
+      // Store preference
+      localStorage.setItem(STORAGE_KEYS.rememberKey, remember.toString());
+      setRememberKeyState(remember);
+
+      // If we have a key, move it to the appropriate storage
+      if (apiKey) {
+        const fromStorage = remember ? sessionStorage : localStorage;
+        const toStorage = remember ? localStorage : sessionStorage;
+
+        // Clear from old storage
+        fromStorage.removeItem(STORAGE_KEYS.apiKeyEncrypted);
+        fromStorage.removeItem(STORAGE_KEYS.apiKeyLegacy);
+
+        // Save to new storage
+        if (isEncryptionSupported()) {
+          try {
+            const encrypted = await encryptValue(apiKey);
+            toStorage.setItem(STORAGE_KEYS.apiKeyEncrypted, encrypted);
+          } catch {
+            toStorage.setItem(STORAGE_KEYS.apiKeyLegacy, apiKey);
+          }
+        } else {
+          toStorage.setItem(STORAGE_KEYS.apiKeyLegacy, apiKey);
+        }
+      }
+    },
+    [apiKey]
+  );
 
   const hasApiKey = apiKey !== null && apiKey.length > 0;
   const remainingMessages = Math.max(0, FREE_MESSAGE_LIMIT - messageCount);
@@ -109,11 +229,12 @@ function useUsageInner(): UsageState {
     hasApiKey,
     hasReachedLimit,
     isLoaded,
+    rememberKey,
     incrementUsage,
     setApiKey,
     clearApiKey,
+    setRememberKey,
   };
 }
 
 export { FREE_MESSAGE_LIMIT };
-

@@ -40,6 +40,8 @@ export function ChatInterface() {
     incrementUsage,
     setApiKey,
     clearApiKey,
+    rememberKey,
+    setRememberKey,
   } = useUsage();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -459,6 +461,8 @@ export function ChatInterface() {
         existingKey={apiKey}
         onSave={setApiKey}
         onRemove={clearApiKey}
+        rememberKey={rememberKey}
+        onRememberKeyChange={setRememberKey}
       />
     </div>
   );
