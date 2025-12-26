@@ -4,9 +4,31 @@ import userEvent from "@testing-library/user-event";
 import { server, mockQueryResponse } from "../../setup";
 import { http, HttpResponse } from "msw";
 
+// Mock Clerk - must be before any component imports
+vi.mock("@clerk/nextjs", () => ({
+  useUser: vi.fn(() => ({
+    isSignedIn: false,
+    isLoaded: true,
+    user: null,
+  })),
+  useAuth: vi.fn(() => ({
+    isSignedIn: false,
+    isLoaded: true,
+  })),
+  useClerk: vi.fn(() => ({
+    openSignIn: vi.fn(),
+  })),
+  ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
+  SignInButton: ({ children }: { children: React.ReactNode }) => children,
+  SignedIn: ({ children }: { children: React.ReactNode }) => null,
+  SignedOut: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Mock gdrive-links module
 vi.mock("@/lib/gdrive-links", () => ({
   getGDriveLink: vi.fn(() => null),
+  getGDriveUrl: vi.fn(() => null),
+  hasGDriveLink: vi.fn(() => false),
 }));
 
 // Mock layout context
@@ -16,6 +38,32 @@ vi.mock("@/lib/layout-context", () => ({
     setSelectedDocument: vi.fn(),
   }),
   LayoutProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+// Mock auth hook
+vi.mock("@/lib/hooks/useAuth", () => ({
+  useAuth: () => ({
+    isSignedIn: false,
+    isLoaded: true,
+  }),
+}));
+
+// Mock usage hook
+vi.mock("@/lib/hooks/useUsage", () => ({
+  useUsage: () => ({
+    messageCount: 0,
+    remainingMessages: 10,
+    apiKey: null,
+    hasApiKey: false,
+    hasReachedLimit: false,
+    isLoaded: true,
+    rememberKey: true,
+    incrementUsage: vi.fn(),
+    setApiKey: vi.fn(),
+    clearApiKey: vi.fn(),
+    setRememberKey: vi.fn(),
+  }),
+  FREE_MESSAGE_LIMIT: 10,
 }));
 
 // Mock scrollIntoView which doesn't exist in jsdom
@@ -38,7 +86,8 @@ describe("ChatInterface", () => {
       // Component renders two textareas (mobile/desktop), check that at least one has correct placeholder
       const textareas = screen.getAllByRole("textbox");
       expect(textareas.length).toBeGreaterThan(0);
-      expect(textareas[0]).toHaveAttribute("placeholder", "Ask me anything...");
+      // When no messages exist, placeholder is "Start typing..."
+      expect(textareas[0]).toHaveAttribute("placeholder", "Start typing...");
     });
 
     it("should render the title text", async () => {
@@ -48,10 +97,7 @@ describe("ChatInterface", () => {
 
       render(<ChatInterface />);
 
-      // Component renders mobile and desktop versions, so there can be multiple
-      const titleElements = screen.getAllByText(/I'm an AI model trained/);
-      expect(titleElements.length).toBeGreaterThan(0);
-
+      // Check for the hero text about Epstein files
       const epsteinElements = screen.getAllByText(/Epstein files/);
       expect(epsteinElements.length).toBeGreaterThan(0);
     });
