@@ -13,10 +13,11 @@ class RAGService:
         self.openai_client = OpenAI(api_key=settings.openai_api_key)
         
         # xAI/Grok for LLM inference - uses OpenAI-compatible API
+        # Only initialize if server-side key is configured; otherwise users must provide via header
         self.xai_client = OpenAI(
             api_key=settings.xai_api_key,
             base_url=settings.xai_base_url
-        )
+        ) if settings.xai_api_key else None
         
         # ChromaDB for vector storage
         self.chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
@@ -25,6 +26,9 @@ class RAGService:
         
         if self.collection.count() == 0:
             print(f"WARNING: Collection '{settings.collection_name}' is empty. RAG will not work until data is ingested.")
+        
+        if not self.xai_client:
+            print("WARNING: No XAI_API_KEY configured. Users must provide their own key via X-XAI-API-Key header.")
 
     def embed_query(self, query: str) -> List[float]:
         """Generate embedding for user query."""
@@ -122,6 +126,9 @@ class RAGService:
 
     def generate_response(self, prompt: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, str]:
         """Generate response using configured LLM provider with conversation history."""
+        if not self.xai_client:
+            raise RuntimeError("No server-side xAI API key configured. User must provide key via X-XAI-API-Key header.")
+        
         messages = self._build_messages(prompt, conversation_history)
         
         # Generate response using xAI (server's API key)

@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # API Keys
     openai_api_key: str  # For embeddings
-    xai_api_key: str  # Required for LLM inference (Grok)
+    xai_api_key: str | None = None  # Optional - users can provide via X-XAI-API-Key header
 
     # Database Configuration
     database_url: str  # PostgreSQL connection URL (Railway auto-injects DATABASE_URL)
