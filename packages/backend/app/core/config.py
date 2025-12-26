@@ -17,9 +17,12 @@ class Settings(BaseSettings):
 
     # Database Configuration
     database_url: str  # PostgreSQL connection URL (Railway auto-injects DATABASE_URL)
+    db_pool_size: int = 5  # SQLAlchemy connection pool size
+    db_max_overflow: int = 10  # Maximum overflow connections
 
     # RAG Configuration
     chroma_db_path: str = "./chroma_db"
+    chromadb_download_url: str = "https://pub-bb289fb1eb1845dda7000f73a13d37cd.r2.dev/chroma_db.zip"
     collection_name: str = "epstein_files"
     embedding_model: str = "text-embedding-3-large"
     
