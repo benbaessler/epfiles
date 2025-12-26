@@ -7,6 +7,7 @@
 # OS files
 .DS_Store
 Thumbs.db
+__MACOSX
 
 # IDE
 .cursor/
@@ -75,15 +76,5 @@ next-env.d.ts
 packages/backend/chroma_db/
 chroma_db/
 
-# Private documentation (local only)
-ARCHITECTURE.md
-COST-ANALYSIS.md
-LAUNCH.md
-MONETIZATION.md
-OPEN_SOURCE.md
-PRELAUNCH.md
-RAG-EXPANSION.md
-packages/backend/checklist.md
-packages/backend/rag-deployment-guide.md
-packages/interface/docs/design.md
-packages/interface/docs/rag-model-design.md
+*.md
+!README.md
