@@ -1,22 +1,24 @@
 {
   "name": "interface",
   "version": "0.1.0",
-  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-beta.7",
-    "@clerk/nextjs": "^6.35.5",
-    "@clerk/themes": "^2.4.40",
+    "@clerk/nextjs": "^6.36.5",
+    "@clerk/themes": "^2.4.46",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
     "html-react-parser": "^5.2.10",
     "lucide-react": "^0.554.0",
     "next": "16.0.10",
+    "posthog-js": "^1.309.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-markdown": "^10.1.0",
