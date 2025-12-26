@@ -8,8 +8,7 @@ A RAG-powered document exploration system for the Epstein Files corpus. Query th
 epfiles/
 ├── packages/
 │   ├── interface/     # Next.js frontend (React 19, Tailwind CSS)
-│   ├── backend/       # FastAPI RAG backend (Python, ChromaDB)
-│   └── dataset/       # Data processing scripts
+│   └── backend/       # FastAPI RAG backend (Python, ChromaDB)
 └── .env               # Central environment configuration
 ```
 
@@ -75,39 +74,23 @@ bun dev
 
 The interface will be available at `http://localhost:3000`.
 
-## Data Pipeline
+## Data Setup
 
-If you need to regenerate the vector database from source documents:
-
-### Step 1: Extract Text from PDFs
+The application requires a pre-built ChromaDB vector database. Download it from the release assets:
 
 ```bash
-cd packages/dataset
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt  # Create this if needed
-
-# Extract text from source PDFs
-python scripts/extract_text.py
+# Download and extract ChromaDB
+curl -L -o chroma_db.tar.gz https://your-r2-bucket.com/chroma_db.tar.gz
+tar -xzf chroma_db.tar.gz -C packages/backend/
 ```
 
-### Step 2: Chunk and Clean Text
+Alternatively, if you have the chunked JSONL files in `packages/backend/data/chunks/`, you can regenerate embeddings:
 
 ```bash
-# Clean extracted text
-python scripts/clean_text.py
-
-# Chunk into embedding-sized pieces
-python scripts/chunk_text.py
-```
-
-### Step 3: Generate Embeddings and Build ChromaDB
-
-```bash
-cd ../backend
+cd packages/backend
 source venv/bin/activate
 
-# Run the embedding and upload script
+# Generate embeddings and build ChromaDB
 python scripts/embed_and_upload.py
 ```
 
@@ -142,17 +125,12 @@ packages/
 │   │   └── lib/           # Utilities and types
 │   └── package.json
 │
-├── backend/
-│   ├── app/
-│   │   ├── api/           # API routes
-│   │   ├── core/          # Config and settings
-│   │   ├── models/        # Database models
-│   │   └── services/      # RAG service
-│   ├── scripts/           # Data processing scripts
-│   └── requirements.txt
-│
-└── dataset/
-    ├── scripts/           # Text extraction and processing
-    ├── manifest/          # Document manifest
-    └── sources/           # Source documentation
+└── backend/
+    ├── app/
+    │   ├── api/           # API routes
+    │   ├── core/          # Config and settings
+    │   ├── models/        # Database models
+    │   └── services/      # RAG service
+    ├── scripts/           # Embedding scripts
+    └── requirements.txt
 ```
