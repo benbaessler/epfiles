@@ -30,7 +30,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { useUsage } from "@/lib/hooks/useUsage";
 
 export function ChatInterface() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, userId } = useAuth();
   const {
     messageCount,
     remainingMessages,
@@ -99,18 +99,18 @@ export function ChatInterface() {
 
   // Fetch conversations when user signs in
   const loadConversations = useCallback(async () => {
-    if (!isSignedIn) return;
+    if (!isSignedIn || !userId) return;
 
     setIsLoadingConversations(true);
     try {
-      const convos = await fetchConversations();
+      const convos = await fetchConversations(userId);
       setConversations(convos);
-    } catch (err) {
-      console.error("Failed to load conversations:", err);
+    } catch {
+      // Error already logged by API client
     } finally {
       setIsLoadingConversations(false);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, userId]);
 
   useEffect(() => {
     loadConversations();
@@ -131,12 +131,12 @@ export function ChatInterface() {
   // Load a specific conversation
   const loadConversation = async (conversationSessionId: string) => {
     try {
-      const apiMessages = await fetchMessages(conversationSessionId);
+      const apiMessages = await fetchMessages(conversationSessionId, userId);
       const uiMessages = apiMessages.map(apiMessageToMessage);
       setMessages(uiMessages);
       setSessionId(conversationSessionId);
-    } catch (err) {
-      console.error("Failed to load conversation:", err);
+    } catch {
+      // Error already logged by API client
     }
   };
 
@@ -155,7 +155,7 @@ export function ChatInterface() {
     if (!pendingDeleteId) return;
 
     try {
-      await deleteConversation(pendingDeleteId);
+      await deleteConversation(pendingDeleteId, userId);
       // Remove from local state
       setConversations((prev) =>
         prev.filter((c) => c.session_id !== pendingDeleteId)
@@ -164,8 +164,8 @@ export function ChatInterface() {
       if (sessionId === pendingDeleteId) {
         handleNewConversation();
       }
-    } catch (err) {
-      console.error("Failed to delete conversation:", err);
+    } catch {
+      // Error already logged by API client
     } finally {
       setPendingDeleteId(null);
     }
@@ -235,6 +235,7 @@ export function ChatInterface() {
         sessionId,
         apiKey,
         messageCount,
+        userId,
       });
 
       // Store session ID from response
@@ -261,8 +262,6 @@ export function ChatInterface() {
       // Refresh conversations list to show the new/updated conversation
       loadConversations();
     } catch (err) {
-      console.error("Failed to send message:", err);
-      
       if (err instanceof ApiKeyErrorType) {
         setApiKeyError(true);
       } else {

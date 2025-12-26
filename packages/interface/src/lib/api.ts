@@ -1,7 +1,17 @@
 import type { Source } from "./types";
 
+/**
+ * Backend API URL - calls the FastAPI backend directly.
+ * In development, defaults to localhost:8000.
+ * In production, set NEXT_PUBLIC_BACKEND_URL to your deployed backend.
+ */
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 export class ApiKeyError extends Error {
-  constructor(message: string = "Invalid API key or insufficient credit balance") {
+  constructor(
+    message: string = "Invalid API key or insufficient credit balance"
+  ) {
     super(message);
     this.name = "ApiKeyError";
   }
@@ -37,21 +47,49 @@ export interface QueryResponse {
   session_id: string;
 }
 
-export async function fetchConversations(): Promise<Conversation[]> {
-  const response = await fetch("/api/conversations");
+/**
+ * Build common headers for backend requests.
+ * Includes X-User-Id for authenticated requests.
+ */
+function buildHeaders(userId?: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (userId) {
+    headers["X-User-Id"] = userId;
+  }
+  return headers;
+}
+
+export async function fetchConversations(
+  userId?: string | null
+): Promise<Conversation[]> {
+  const response = await fetch(`${BACKEND_URL}/api/conversations`, {
+    headers: buildHeaders(userId),
+  });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch conversations");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch conversations");
   }
 
   return response.json();
 }
 
-export async function fetchMessages(sessionId: string): Promise<ApiMessage[]> {
-  const response = await fetch(`/api/conversations/${sessionId}/messages`);
+export async function fetchMessages(
+  sessionId: string,
+  userId?: string | null
+): Promise<ApiMessage[]> {
+  const response = await fetch(
+    `${BACKEND_URL}/api/conversations/${sessionId}/messages`,
+    {
+      headers: buildHeaders(userId),
+    }
+  );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch messages");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch messages");
   }
 
   return response.json();
@@ -63,6 +101,7 @@ export interface SendQueryOptions {
   topK?: number;
   apiKey?: string | null;
   messageCount?: number;
+  userId?: string | null;
 }
 
 export async function sendQuery(
@@ -70,19 +109,18 @@ export async function sendQuery(
   sessionId?: string | null,
   topK: number = 5,
   apiKey?: string | null,
-  messageCount?: number
+  messageCount?: number,
+  userId?: string | null
 ): Promise<QueryResponse> {
   // Support both old signature and new options object
   let opts: SendQueryOptions;
   if (typeof queryOrOptions === "string") {
-    opts = { query: queryOrOptions, sessionId, topK, apiKey, messageCount };
+    opts = { query: queryOrOptions, sessionId, topK, apiKey, messageCount, userId };
   } else {
     opts = { topK: 5, ...queryOrOptions };
   }
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers = buildHeaders(opts.userId);
 
   // Add API key header if provided
   if (opts.apiKey) {
@@ -94,7 +132,7 @@ export async function sendQuery(
     headers["X-Message-Count"] = opts.messageCount.toString();
   }
 
-  const response = await fetch("/api/query", {
+  const response = await fetch(`${BACKEND_URL}/api/query`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -107,7 +145,7 @@ export async function sendQuery(
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     const errorMessage = (error.detail || "").toLowerCase();
-    
+
     // Detect API key related errors
     if (
       response.status === 401 ||
@@ -121,19 +159,27 @@ export async function sendQuery(
     ) {
       throw new ApiKeyError(error.detail || "Invalid API key");
     }
-    
+
     throw new Error(error.detail || "Failed to send query");
   }
 
   return response.json();
 }
 
-export async function deleteConversation(sessionId: string): Promise<void> {
-  const response = await fetch(`/api/conversations/${sessionId}`, {
-    method: "DELETE",
-  });
+export async function deleteConversation(
+  sessionId: string,
+  userId?: string | null
+): Promise<void> {
+  const response = await fetch(
+    `${BACKEND_URL}/api/conversations/${sessionId}`,
+    {
+      method: "DELETE",
+      headers: buildHeaders(userId),
+    }
+  );
 
   if (!response.ok) {
-    throw new Error("Failed to delete conversation");
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to delete conversation");
   }
 }

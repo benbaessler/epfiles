@@ -5,6 +5,9 @@ import { resolve } from "path";
 // Load environment variables from root .env file
 config({ path: resolve(__dirname, "../../.env") });
 
+// Backend URL for CSP connect-src (direct API calls)
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 const nextConfig: NextConfig = {
   headers: async () => [
     {
@@ -22,7 +25,7 @@ const nextConfig: NextConfig = {
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https: blob:",
             "font-src 'self' data:",
-            "connect-src 'self' https://*.clerk.accounts.dev https://clerk.epfiles.ai https://*.posthog.com https://us.i.posthog.com https://api.x.ai wss://*.clerk.accounts.dev",
+            `connect-src 'self' ${backendUrl} https://*.clerk.accounts.dev https://clerk.epfiles.ai https://*.posthog.com https://us.i.posthog.com https://api.x.ai wss://*.clerk.accounts.dev`,
             "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
             "worker-src 'self' blob:",
           ].join("; "),
