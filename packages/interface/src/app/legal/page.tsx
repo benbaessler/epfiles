@@ -66,13 +66,13 @@ export default function LegalPage() {
 function PrivacyContent() {
   return (
     <>
-      <h1 className="font-[family-name:var(--font-libre-baskerville)] text-2xl sm:text-3xl text-zinc-100 mb-8">
+      <h1 className="font-[family-name:var(--font-libre-baskerville)] text-2xl sm:text-3xl text-[#060823] mb-8">
         Privacy Policy
       </h1>
 
-      <div className="prose prose-invert prose-zinc max-w-none space-y-6 text-zinc-300">
+      <div className="max-w-none space-y-6 text-[#52525b]">
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">1. Introduction</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">1. Introduction</h2>
           <p>
             epfiles.ai (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy.
             This Privacy Policy explains how we collect, use, disclose, and safeguard your
@@ -81,9 +81,9 @@ function PrivacyContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">2. Information We Collect</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">2. Information We Collect</h2>
 
-          <h3 className="text-lg text-zinc-300 font-medium mt-6 mb-3">Account Information</h3>
+          <h3 className="text-lg text-[#3f3f46] font-medium mt-6 mb-3">Account Information</h3>
           <p>When you create an account, we collect:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Email address</li>
@@ -92,15 +92,14 @@ function PrivacyContent() {
             <li>Authentication credentials managed by Clerk</li>
           </ul>
 
-          <h3 className="text-lg text-zinc-300 font-medium mt-6 mb-3">Usage Data</h3>
+          <h3 className="text-lg text-[#3f3f46] font-medium mt-6 mb-3">Usage Data</h3>
           <p>When you use our service, we collect:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Search queries and conversation history</li>
             <li>Query timestamps and frequency</li>
-            <li>Subscription and billing information</li>
           </ul>
 
-          <h3 className="text-lg text-zinc-300 font-medium mt-6 mb-3">Technical Data</h3>
+          <h3 className="text-lg text-[#3f3f46] font-medium mt-6 mb-3">Technical Data</h3>
           <p>We automatically collect:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>IP address</li>
@@ -111,13 +110,12 @@ function PrivacyContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">3. How We Use Your Information</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">3. How We Use Your Information</h2>
           <p>We use the collected information to:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Provide and maintain our service</li>
             <li>Process your queries through our RAG (Retrieval-Augmented Generation) system</li>
-            <li>Manage your account and subscription</li>
-            <li>Process payments and billing</li>
+            <li>Manage your account</li>
             <li>Improve our service and user experience</li>
             <li>Communicate with you about your account or service updates</li>
             <li>Comply with legal obligations</li>
@@ -125,22 +123,23 @@ function PrivacyContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">4. Third-Party Services</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">4. Third-Party Services</h2>
           <p>We use the following third-party services that may process your data:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Clerk</strong> - Authentication and user management</li>
-            <li><strong>OpenAI</strong> - AI language model processing</li>
-            <li><strong>Groq</strong> - AI inference processing</li>
+            <li><strong>xAI</strong> - AI language model processing (when you provide your own API key)</li>
             <li><strong>Vercel</strong> - Website hosting</li>
             <li><strong>Railway</strong> - Backend infrastructure</li>
           </ul>
           <p className="mt-4">
             Each third-party service has its own privacy policy governing the use of your information.
+            When you use your own xAI API key, your queries are sent directly to xAI and are subject
+            to xAI&apos;s privacy policy.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">5. Data Retention</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">5. Data Retention</h2>
           <p>
             We retain your account information and conversation history for as long as your
             account is active. You may request deletion of your data at any time by contacting us.
@@ -152,7 +151,7 @@ function PrivacyContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">6. Your Rights</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">6. Your Rights</h2>
           <p>You have the right to:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Access</strong> - Request a copy of your personal data</li>
@@ -167,7 +166,7 @@ function PrivacyContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">7. Data Security</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">7. Data Security</h2>
           <p>
             We implement appropriate technical and organizational measures to protect your
             personal data against unauthorized access, alteration, disclosure, or destruction.
@@ -176,7 +175,7 @@ function PrivacyContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">8. Cookies</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">8. Cookies</h2>
           <p>
             We use cookies and similar technologies to maintain your session, remember your
             preferences, and analyze how our service is used. You can control cookies through
@@ -185,7 +184,7 @@ function PrivacyContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">9. Changes to This Policy</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">9. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. We will notify you of any
             changes by posting the new Privacy Policy on this page.
@@ -193,12 +192,12 @@ function PrivacyContent() {
         </section>
 
         <section>
-          <h2 className="text-xl text-zinc-200 font-semibold mt-8 mb-4">10. Contact Us</h2>
+          <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">10. Contact Us</h2>
           <p>
             If you have questions about this Privacy Policy, please contact us at:
           </p>
           <p className="mt-2">
-            <a href="mailto:support@epfiles.ai" className="text-blue-400 hover:text-blue-300">
+            <a href="mailto:support@epfiles.ai" className="text-[#161F81] hover:text-[#1a2599]">
               support@epfiles.ai
             </a>
           </p>
