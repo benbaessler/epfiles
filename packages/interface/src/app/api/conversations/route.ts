@@ -1,27 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
 export async function GET() {
-  let userId: string | null = null;
   try {
-    const authResult = await auth();
-    userId = authResult.userId;
-  } catch {
-    return NextResponse.json({ error: "Auth failed" }, { status: 500 });
-  }
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const response = await fetch(`${BACKEND_URL}/api/conversations`, {
-      headers: {
-        "X-User-Id": userId,
-      },
-    });
+    const response = await fetch(`${BACKEND_URL}/api/conversations`);
 
     const data = await response.json();
 
@@ -44,18 +27,11 @@ export async function GET() {
 }
 
 export async function POST() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const response = await fetch(`${BACKEND_URL}/api/conversations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-User-Id": userId,
       },
     });
 
