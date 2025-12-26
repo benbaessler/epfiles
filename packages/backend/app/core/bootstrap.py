@@ -7,6 +7,9 @@ from app.core.config import get_settings
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
+# Default ChromaDB download URL (override with CHROMADB_DOWNLOAD_URL env var)
+DEFAULT_CHROMADB_URL = "https://pub-bb289fb1eb1845dda7000f73a13d37cd.r2.dev/chroma_db.zip"
+
 def _has_vector_data(db_path: str) -> bool:
     """Check if ChromaDB has actual vector data (not just an empty initialized DB)."""
     if not os.path.exists(db_path):
@@ -33,10 +36,7 @@ def download_db_if_missing():
         print("✅ ChromaDB with vector data found. Skipping download.")
         return
 
-    db_url = os.getenv("CHROMADB_DOWNLOAD_URL")
-    if not db_url:
-        print("⚠️ No CHROMADB_DOWNLOAD_URL set. Starting with empty DB.")
-        return
+    db_url = os.getenv("CHROMADB_DOWNLOAD_URL", DEFAULT_CHROMADB_URL)
 
     print(f"⬇️ Downloading ChromaDB from {db_url}...")
     
