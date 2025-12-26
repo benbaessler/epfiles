@@ -1,6 +1,38 @@
 /**
  * Encryption utilities for securely storing sensitive data in browser storage.
  * Uses Web Crypto API with AES-GCM encryption.
+ * 
+ * ## Security Tradeoffs
+ * 
+ * This module encrypts sensitive data (like API keys) before storing in browser
+ * storage using AES-256-GCM encryption. However, there are inherent limitations:
+ * 
+ * ### What IS protected:
+ * - API keys are encrypted at rest in localStorage/sessionStorage
+ * - Direct inspection of storage won't reveal the plaintext key
+ * - Each encryption uses a unique random IV (initialization vector)
+ * 
+ * ### What is NOT protected:
+ * - The encryption key itself is stored in localStorage (`epfiles_device_key`)
+ * - Any JavaScript running on the same origin can access both the encrypted
+ *   data and the encryption key, making decryption possible
+ * - Browser extensions with sufficient permissions could access the data
+ * - The key persists indefinitely unless explicitly cleared
+ * 
+ * ### Why this approach:
+ * - Pure client-side encryption is inherently limited without server-side
+ *   session management or hardware security modules
+ * - This provides defense-in-depth against casual inspection and some attack vectors
+ * - For higher security, users should use session-only storage (remember=false)
+ *   which clears data when the browser closes
+ * 
+ * ### Alternatives considered:
+ * - HttpOnly cookies with server sessions: Would require backend changes
+ * - WebAuthn/passkeys: More complex, not universally supported
+ * - No encryption: Would expose keys in plaintext in DevTools
+ * 
+ * For applications requiring higher security guarantees, consider implementing
+ * server-side session management with HttpOnly cookies.
  */
 
 const DEVICE_KEY_NAME = "epfiles_device_key";
