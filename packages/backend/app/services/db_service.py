@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from uuid import UUID
 import uuid
-from app.models.database import Conversation, Message
+from app.models.database import Conversation, Message, utc_now
 from datetime import datetime
 
 
@@ -81,7 +81,7 @@ class DatabaseService:
         # Update conversation's updated_at timestamp
         conversation = self.get_conversation(session_id)
         if conversation:
-            conversation.updated_at = datetime.utcnow()
+            conversation.updated_at = utc_now()
         
         self.db.commit()
         self.db.refresh(message)
@@ -90,14 +90,16 @@ class DatabaseService:
     def get_conversation_history(
         self,
         session_id: UUID,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
+        offset: int = 0
     ) -> List[Message]:
         """
-        Retrieve conversation history (messages) for a session.
+        Retrieve conversation history (messages) for a session with pagination.
         
         Args:
             session_id: UUID of the conversation
-            limit: Optional limit on number of messages to retrieve (most recent)
+            limit: Optional limit on number of messages to retrieve
+            offset: Number of messages to skip (for pagination)
             
         Returns:
             List of Message objects ordered by creation time
@@ -106,15 +108,39 @@ class DatabaseService:
             Message.session_id == session_id
         ).order_by(Message.created_at.asc())
         
+        if offset > 0:
+            query = query.offset(offset)
+        
         if limit:
-            # Get the most recent N messages
-            # First, get total count
-            total = query.count()
-            if total > limit:
-                # Skip older messages
-                query = query.offset(total - limit)
+            query = query.limit(limit)
         
         return query.all()
+
+    def get_recent_conversation_history(
+        self,
+        session_id: UUID,
+        limit: int = 10
+    ) -> List[Message]:
+        """
+        Retrieve the most recent N messages from a conversation.
+        Optimized for LLM context building - returns messages in chronological order.
+        
+        Args:
+            session_id: UUID of the conversation
+            limit: Maximum number of recent messages to retrieve
+            
+        Returns:
+            List of Message objects ordered by creation time (oldest first)
+        """
+        # Subquery to get the most recent message IDs
+        subquery = self.db.query(Message.id).filter(
+            Message.session_id == session_id
+        ).order_by(Message.created_at.desc()).limit(limit).subquery()
+        
+        # Fetch those messages in chronological order
+        return self.db.query(Message).filter(
+            Message.id.in_(subquery)
+        ).order_by(Message.created_at.asc()).all()
 
     def get_all_conversations(self, limit: int = 100) -> List[Conversation]:
         """

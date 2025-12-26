@@ -2,10 +2,16 @@ from sqlalchemy import Column, String, Text, Integer, DateTime, ForeignKey, Inde
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 Base = declarative_base()
+
+
+def utc_now() -> datetime:
+    """Return current UTC time with timezone info."""
+    return datetime.now(timezone.utc)
+
 
 class Conversation(Base):
     """Conversation session table."""
@@ -14,8 +20,8 @@ class Conversation(Base):
     session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(String(255), nullable=False, index=True)  # Clerk user ID
     title = Column(String(255), nullable=True)  # Auto-generated from first message
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
     conversation_metadata = Column(JSONB, default={})  # Store additional metadata (IP, user agent, etc.)
 
     # Relationship to messages
@@ -34,7 +40,7 @@ class Message(Base):
     role = Column(String(20), nullable=False)  # 'user' or 'assistant'
     content = Column(Text, nullable=False)
     sources = Column(JSONB, default=[])  # Store citations for assistant messages
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
     token_count = Column(Integer, default=0)  # Optional: track token usage per message
 
     # Relationship to conversation
