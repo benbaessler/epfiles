@@ -7,51 +7,47 @@
   --font-sans: var(--font-inter);
   --font-serif: var(--font-libre-baskerville);
   --font-mono: var(--font-inter);
+  --font-code: var(--font-space-mono);
 
-  /* Investigative Palette */
-  --color-zinc-850: #1f1f22;
-  --color-zinc-925: #121214;
+  /* Light Theme Palette */
+  --color-zinc-850: #e5e5e5;
+  --color-zinc-925: #f0f0f0;
   
-  /* New Primary: Blue/Purple-ish (Indigo-500) */
-  --color-primary: #6366f1; 
+  /* Primary: Dark Blue */
+  --color-primary: #161F81; 
   --color-primary-foreground: #ffffff;
   
-  /* Highlight Color (Yellow - Kept for text highlights) */
-  --color-highlight: #facc15;
-  --color-highlight-foreground: #18181b;
+  /* Highlight Color */
+  --color-highlight: #BEC1F9;
+  --color-highlight-foreground: #060823;
 
-  --color-secondary: #475569; /* Legal Blue */
-  --color-secondary-foreground: #f8fafc;
+  --color-secondary: #475569;
+  --color-secondary-foreground: #ffffff;
   
-  --color-muted: #27272a;
-  --color-muted-foreground: #a1a1aa;
+  --color-muted: #e5e5e5;
+  --color-muted-foreground: #52525b;
   
-  --color-accent: #6366f1;
+  --color-accent: #161F81;
   --color-accent-foreground: #ffffff;
   
   --color-destructive: #ef4444;
-  --color-destructive-foreground: #f8fafc;
+  --color-destructive-foreground: #ffffff;
   
-  --color-border: #27272a;
-  --color-input: #27272a;
-  --color-ring: #6366f1;
+  --color-border: #c4c4c4;
+  --color-input: #ffffff;
+  --color-ring: #161F81;
 }
 
 :root {
-  /* Default to Dark Mode Palette */
-  --background: #171519; /* Updated Theme Background */
-  --foreground: #e4e4e7; /* Off-white */
-}
-
-/* Optional Light Mode Override (if needed later) */
-@media (prefers-color-scheme: light) {
-  /* Keeping it dark by default as per design, but ready for override */
+  /* Light Theme */
+  --background: #D9D9D9;
+  --foreground: #060823;
 }
 
 html {
   /* Support for notched devices (iPhone X+) */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  background: #100f12;
+  background: #D9D9D9;
 }
 
 body {
@@ -76,6 +72,11 @@ body {
 .text-highlight {
   background-color: var(--color-highlight);
   color: var(--color-highlight-foreground);
+}
+
+/* Mono/code font utility */
+.font-code {
+  font-family: Monaco, monospace;
 }
 
 /* Markdown Content Styling */
@@ -235,19 +236,19 @@ body {
 
 /* Links */
 .markdown-content a {
-  color: #6366f1;
+  color: #161F81;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .markdown-content a:hover {
-  color: #818cf8;
+  color: #2a3699;
 }
 
 /* Code */
 .markdown-content code {
-  background-color: rgba(0, 0, 0, 0.3);
-  color: #e4e4e7;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #060823;
   padding: 0.125em 0.25em;
   border-radius: 0.25em;
   font-size: 0.9em;
@@ -255,8 +256,8 @@ body {
 }
 
 .markdown-content pre {
-  background-color: rgba(0, 0, 0, 0.3);
-  color: #e4e4e7;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #060823;
   padding: 1em;
   border-radius: 0.5em;
   overflow-x: auto;
@@ -277,8 +278,8 @@ body {
   margin-top: 1em;
   margin-bottom: 1em;
   padding-left: 1em;
-  border-left: 4px solid #52525b;
-  color: #a1a1aa;
+  border-left: 4px solid #a1a1aa;
+  color: #52525b;
   font-style: italic;
 }
 
@@ -287,7 +288,7 @@ body {
   margin-top: 2em;
   margin-bottom: 2em;
   border: none;
-  border-top: 1px solid #3f3f46;
+  border-top: 1px solid #c4c4c4;
 }
 
 /* Tables */
@@ -301,12 +302,12 @@ body {
 .markdown-content th,
 .markdown-content td {
   padding: 0.5em 1em;
-  border: 1px solid #3f3f46;
+  border: 1px solid #c4c4c4;
   text-align: left;
 }
 
 .markdown-content th {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.05);
   font-weight: 600;
 }
 
