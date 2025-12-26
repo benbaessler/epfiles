@@ -76,15 +76,17 @@ The interface will be available at `http://localhost:3000`.
 
 ## Data Setup
 
-The application requires a pre-built ChromaDB vector database. Download it from the release assets:
+The ChromaDB vector database is **automatically downloaded** on first server startup if not present. No manual setup required.
+
+To use a custom database URL, set the environment variable:
 
 ```bash
-# Download and extract ChromaDB
-curl -L -o chroma_db.tar.gz https://your-r2-bucket.com/chroma_db.tar.gz
-tar -xzf chroma_db.tar.gz -C packages/backend/
+CHROMADB_DOWNLOAD_URL=https://your-bucket.com/chroma_db.zip
 ```
 
-Alternatively, if you have the chunked JSONL files in `packages/backend/data/chunks/`, you can regenerate embeddings:
+### Manual Regeneration (Optional)
+
+If you have the chunked JSONL files in `packages/backend/data/chunks/`, you can regenerate embeddings:
 
 ```bash
 cd packages/backend
