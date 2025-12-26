@@ -177,6 +177,26 @@ export default function AboutPage() {
                 </div>
               </section>
 
+              {/* Open Source */}
+              <section className="mb-12">
+                <h2 className="text-xl text-[#060823] font-semibold mb-4">
+                  Open Source
+                </h2>
+                <p className="text-[#52525b]">
+                  This project is open source. View the source code, report issues,
+                  or contribute on{" "}
+                  <a
+                    href="https://github.com/benbaessler/epfiles"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#161F81] hover:text-[#1a2599] underline underline-offset-2"
+                  >
+                    GitHub
+                  </a>
+                  .
+                </p>
+              </section>
+
               {/* Contact */}
               <section className="mb-12">
                 <h2 className="text-xl text-[#060823] font-semibold mb-4">
