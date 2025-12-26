@@ -54,8 +54,8 @@ export function MessageBubble({ message }: { message: Message }) {
         className={cn(
           "max-w-[90%] sm:max-w-[80%] rounded-lg px-3 sm:px-4 py-3 leading-relaxed",
           isUser 
-            ? "bg-zinc-800 text-zinc-100" 
-            : "bg-transparent text-zinc-200 px-0"
+            ? "bg-[#BEC1F9] text-[#060823]" 
+            : "bg-white text-[#060823] shadow-sm"
         )}
       >
         <div className="max-w-none">
@@ -71,7 +71,7 @@ export function MessageBubble({ message }: { message: Message }) {
             <button
               type="button"
               onClick={() => setIsSourcesExpanded(!isSourcesExpanded)}
-              className="flex items-center gap-1 text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 hover:text-zinc-400 cursor-pointer"
+              className="flex items-center gap-1 text-xs font-semibold text-[#52525b] uppercase tracking-wide mb-2 hover:text-[#060823] cursor-pointer"
             >
               {isSourcesExpanded ? (
                 <ChevronDown className="w-4 h-4" />

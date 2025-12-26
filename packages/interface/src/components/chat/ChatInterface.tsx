@@ -8,43 +8,54 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
 } from "react";
-import { useUser, useClerk } from "@clerk/nextjs";
-import { ArrowUp, Loader, Menu } from "lucide-react";
+import { ArrowUp, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Message, MessageBubble } from "./MessageBubble";
 import { Sidebar } from "./Sidebar";
+import { UsageIndicator } from "./UsageIndicator";
+import { ApiKeyModal } from "./ApiKeyModal";
+import { ApiKeyError } from "./ApiKeyError";
+import { TopBar } from "@/components/layout/TopBar";
 import {
   fetchConversations,
   fetchMessages,
   sendQuery,
   deleteConversation,
+  ApiKeyError as ApiKeyErrorType,
   type Conversation,
   type ApiMessage,
 } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { useUsage } from "@/lib/hooks/useUsage";
 
 export function ChatInterface() {
-  const { isSignedIn, isLoaded } = useUser();
-  const { openSignIn } = useClerk();
+  const { isSignedIn, isLoaded } = useAuth();
+  const {
+    messageCount,
+    remainingMessages,
+    apiKey,
+    hasApiKey,
+    hasReachedLimit,
+    incrementUsage,
+    setApiKey,
+    clearApiKey,
+  } = useUsage();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    // Start with sidebar closed on mobile, open on desktop
-    if (typeof window !== "undefined") {
-      return window.innerWidth >= 1024;
-    }
-    return true;
-  });
-  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  // const [showSuggestions, setShowSuggestions] = useState(false);
   const [isMultiLine, setIsMultiLine] = useState(false);
   const [loadingText, setLoadingText] = useState("Searching...");
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState(false);
+  const [lastUserMessage, setLastUserMessage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -58,13 +69,13 @@ export function ChatInterface() {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  // Show suggested questions after 3s delay
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSuggestions(true);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, []);
+  // Show suggested questions after 3s delay (currently disabled)
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setShowSuggestions(true);
+  //   }, 3000);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   // Cycle loading text every 4 seconds
   useEffect(() => {
@@ -166,11 +177,11 @@ export function ChatInterface() {
     // We also disable wrapping (wrap="off") so long text scrolls horizontally
     // instead of growing vertically.
     if (textareaRef.current) {
-      textareaRef.current.style.height = "40px";
+      textareaRef.current.style.height = "36px";
       if (nextValue.includes("\n")) {
         const scrollHeight = textareaRef.current.scrollHeight;
         textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
-        setIsMultiLine(scrollHeight > 40);
+        setIsMultiLine(scrollHeight > 36);
       } else {
         setIsMultiLine(false);
       }
@@ -185,13 +196,13 @@ export function ChatInterface() {
   };
 
   const sendMessage = async (messageContent: string) => {
-    // Wait for Clerk to finish loading
-    if (!isLoaded) return;
-
-    // Require sign-in to send messages
-    if (!isSignedIn) {
-      setPendingMessage(messageContent);
-      openSignIn();
+    // Check if user has reached limit and needs to sign in / provide API key
+    if (hasReachedLimit && !hasApiKey) {
+      // Only allow opening API key modal if signed in
+      if (isSignedIn) {
+        setApiKeyModalOpen(true);
+      }
+      // If not signed in, do nothing (UsageIndicator guides them to sign in)
       return;
     }
 
@@ -209,13 +220,20 @@ export function ChatInterface() {
     setInput("");
     setIsLoading(true);
     setIsMultiLine(false);
+    setApiKeyError(false);
+    setLastUserMessage(messageContent);
 
     if (textareaRef.current) {
-      textareaRef.current.style.height = "40px";
+      textareaRef.current.style.height = "36px";
     }
 
     try {
-      const data = await sendQuery(messageContent, sessionId);
+      const data = await sendQuery({
+        query: messageContent,
+        sessionId,
+        apiKey,
+        messageCount,
+      });
 
       // Store session ID from response
       if (data.session_id && !sessionId) {
@@ -235,21 +253,29 @@ export function ChatInterface() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
+      // Increment usage counter after successful message
+      incrementUsage();
+
       // Refresh conversations list to show the new/updated conversation
       loadConversations();
     } catch (err) {
       console.error("Failed to send message:", err);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content:
-          "I encountered an error while processing your request. Please try again later.",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      
+      if (err instanceof ApiKeyErrorType) {
+        setApiKeyError(true);
+      } else {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content:
+            "I encountered an error while processing your request. Please try again later.",
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -260,70 +286,78 @@ export function ChatInterface() {
     await sendMessage(input.trim());
   };
 
-  // Send pending message after user signs in
-  useEffect(() => {
-    if (isLoaded && isSignedIn && pendingMessage) {
-      sendMessage(pendingMessage);
-      setPendingMessage(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, isSignedIn, pendingMessage]);
+  // Suggested questions (currently disabled)
+  // const suggestedQuestions = [
+  //   "Did Donald Trump know about Epstein's conduct?",
+  //   "What properties did Epstein own and who visited them?",
+  //   "What does the evidence show about Ghislaine Maxwell's role?",
+  // ];
 
-  const suggestedQuestions = [
-    "Did Donald Trump know about Epstein's conduct?",
-    "What properties did Epstein own and who visited them?",
-    "What does the evidence show about Ghislaine Maxwell's role?",
-  ];
+  // const handleSuggestedQuestion = async (question: string) => {
+  //   if (isLoading) return;
+  //   await sendMessage(question);
+  // };
 
-  const handleSuggestedQuestion = async (question: string) => {
-    if (isLoading) return;
-    await sendMessage(question);
+  const handleRetryApiKeyError = async () => {
+    if (!lastUserMessage || isLoading) return;
+    setApiKeyError(false);
+    // Remove the last user message since sendMessage will re-add it
+    setMessages((prev) => prev.slice(0, -1));
+    await sendMessage(lastUserMessage);
   };
 
   const renderInput = () => {
     return (
-      <div
-        className={`relative flex w-full gap-2 p-2 border border-zinc-700 rounded-xl bg-[#1a1a1e] shadow-xl hover:shadow-xl transition-all focus-within:border-zinc-600 ${
-          isMultiLine ? "flex-col sm:flex-row sm:items-end" : "items-end"
-        }`}
-      >
-        <textarea
-          ref={textareaRef}
-          className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-2 pl-3 text-base resize-none max-h-[200px] text-zinc-200 placeholder:text-zinc-500 outline-none overflow-x-auto overflow-y-auto leading-normal"
-          placeholder={isSignedIn ? "Ask me anything..." : "Sign in to ask questions..."}
-          rows={1}
-          value={input}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          style={{ height: "40px" }}
-          disabled={isLoading}
-          wrap="off"
-        />
-
-        <Button
-          size="icon"
-          className={`h-10 w-10 shrink-0 rounded-lg bg-white text-black hover:bg-zinc-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-            isMultiLine ? "self-end sm:self-auto" : ""
+      <div className="w-full">
+        <div
+          className={`relative flex w-full gap-1.5 sm:gap-2 p-1.5 sm:p-2 border border-[#c4c4c4] rounded bg-white shadow-sm hover:shadow transition-all focus-within:border-[#161F81] ${
+            isMultiLine ? "flex-col sm:flex-row sm:items-end" : "items-center"
           }`}
-          onClick={handleSend}
-          disabled={!input.trim() || isLoading}
         >
-          {isLoading ? (
-            <Loader className="h-5 w-5 animate-spin" />
-          ) : (
-            <ArrowUp className="h-5 w-5" />
-          )}
-        </Button>
+          <textarea
+            ref={textareaRef}
+            className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 py-2 px-2 sm:px-3 text-sm sm:text-base resize-none max-h-[200px] text-[#060823] placeholder:text-[#71717a] outline-none overflow-x-auto overflow-y-auto leading-normal"
+            placeholder={messages.length > 0 ? "Follow up" : "Start typing..."}
+            rows={1}
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            style={{ height: "36px" }}
+            disabled={isLoading}
+            wrap="off"
+          />
+
+          <Button
+            size="icon"
+            className={`h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded bg-[#161F81] text-white hover:bg-[#1a2599] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              isMultiLine ? "self-end sm:self-auto" : ""
+            }`}
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+          >
+            {isLoading ? (
+              <Loader className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+            ) : (
+              <ArrowUp className="h-4 w-4 sm:h-5 sm:w-5" />
+            )}
+          </Button>
+        </div>
+        <UsageIndicator
+          remainingMessages={remainingMessages}
+          hasApiKey={hasApiKey}
+          isSignedIn={isSignedIn ?? false}
+          onAddApiKeyClick={() => setApiKeyModalOpen(true)}
+        />
       </div>
     );
   };
 
   return (
-    <div className="flex h-full bg-zinc-950/50 overflow-hidden">
+    <div className="flex h-full bg-[#D9D9D9] overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {isSignedIn && isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/30 z-30 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -342,104 +376,36 @@ export function ChatInterface() {
       )}
 
       <div className="flex-1 flex flex-col h-full relative">
-        {/* Mobile menu toggle */}
-        {isSignedIn && (
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden absolute top-4 left-4 z-20 text-zinc-300 hover:text-zinc-200 hover:bg-zinc-700/50 rounded-lg cursor-pointer w-10 h-10 flex items-center justify-center"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-        )}
+        {/* Top Bar */}
+        <TopBar
+          hasApiKey={hasApiKey}
+          isSignedIn={isSignedIn ?? false}
+          onSettingsClick={() => setApiKeyModalOpen(true)}
+          onMenuClick={() => setIsSidebarOpen(true)}
+        />
 
         {messages.length === 0 ? (
-          <div className="h-full w-full">
-            {/* Mobile: title centered, composer bottom */}
-            <div className="sm:hidden flex flex-col h-full min-h-[100dvh] overflow-hidden">
-              <div className="flex-1 flex items-center justify-center px-6 pt-20 pb-8">
-                <div className="w-full max-w-3xl flex flex-col items-center">
-                  <h1 className="font-serif text-3xl text-zinc-100 text-center leading-tight">
-                    I&apos;m an AI model trained
-                    <br />
-                    on the{" "}
-                    <span className="bg-[#8C5716] text-white px-2 py-1">
-                      Epstein files.
-                    </span>
-                  </h1>
-                </div>
-              </div>
-
-              <div className="w-full px-6 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <div className="mx-auto max-w-3xl w-full">
-                  <div className="w-full flex flex-col items-center gap-3">
-                    <div className="flex flex-col items-center gap-2">
-                      {suggestedQuestions.map((question, index) => (
-                        <button
-                          key={question}
-                          onClick={() => handleSuggestedQuestion(question)}
-                          disabled={isLoading || !showSuggestions}
-                          className={`text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-center ${
-                            showSuggestions
-                              ? "opacity-70 hover:opacity-100 translate-y-0"
-                              : "opacity-0 -translate-y-2"
-                          }`}
-                          style={{
-                            transition: "opacity 500ms, transform 500ms",
-                            transitionDelay: showSuggestions
-                              ? `${
-                                  (suggestedQuestions.length - 1 - index) * 500
-                                }ms`
-                              : "0ms",
-                          }}
-                        >
-                          {question}
-                        </button>
-                      ))}
-                    </div>
-
-                    {renderInput()}
-                  </div>
+          <div className="flex-1 flex flex-col px-4 sm:px-6">
+            {/* Hero section - always centered */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="w-full max-w-3xl flex flex-col items-center">
+                <p className="font-code text-[10px] sm:text-xs text-[#52525b] mb-4 sm:mb-6 uppercase text-center leading-relaxed max-w-xs sm:max-w-none">
+                  Trained on over 33,000 documents. May hallucinate, always cross-check with sources.
+                </p>
+                <h1 className="font-serif text-3xl tracking-tight sm:text-5xl md:text-6xl text-[#060823] text-center mb-6 sm:mb-8 leading-[1.1]">
+                  Ask anything about the
+                  <br />
+                  Epstein files.
+                </h1>
+                {/* Input integrated with hero on desktop */}
+                <div className="hidden sm:block w-full">
+                  {renderInput()}
                 </div>
               </div>
             </div>
-
-            {/* Desktop/tablet: centered stack (original layout) */}
-            <div className="hidden sm:flex flex-col items-center justify-start h-full overflow-y-auto p-4 pt-[30vh]">
-              <div className="w-full max-w-3xl flex flex-col items-center pb-8">
-                <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl text-zinc-100 text-center mb-6 sm:mb-8 leading-tight">
-                  I&apos;m an AI model trained
-                  <br />
-                  on the{" "}
-                  <span className="bg-[#8C5716] text-white px-2 py-1">
-                    Epstein files.
-                  </span>
-                </h1>
-
-                <div className="w-full mb-4">{renderInput()}</div>
-
-                <div className="w-full flex flex-col items-center gap-2">
-                  {suggestedQuestions.map((question, index) => (
-                    <button
-                      key={question}
-                      onClick={() => handleSuggestedQuestion(question)}
-                      disabled={isLoading || !showSuggestions}
-                      className={`text-sm text-zinc-300 cursor-pointer disabled:cursor-not-allowed px-3 py-2 rounded-lg border border-zinc-700 hover:border-zinc-600 bg-zinc-800/50 hover:bg-zinc-700 text-center ${
-                        showSuggestions
-                          ? "opacity-70 hover:opacity-100 translate-y-0"
-                          : "opacity-0 translate-y-2"
-                      }`}
-                      style={{
-                        transition: "opacity 500ms, transform 500ms",
-                        transitionDelay: showSuggestions
-                          ? `${index * 500}ms`
-                          : "0ms",
-                      }}
-                    >
-                      {question}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {/* Input fixed at bottom on mobile only */}
+            <div className="sm:hidden w-full max-w-3xl mx-auto py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              {renderInput()}
             </div>
           </div>
         ) : (
@@ -453,11 +419,15 @@ export function ChatInterface() {
 
                 {isLoading && (
                   <div className="flex w-full px-2 sm:px-4 py-2 justify-start">
-                    <div className="bg-transparent text-zinc-200 px-0 rounded-2xl py-3 text-sm leading-relaxed flex items-center gap-2 shimmer">
-                      <Loader className="h-4 w-4 text-zinc-400 animate-spin" />
-                      <span className="text-zinc-400">{loadingText}</span>
+                    <div className="bg-transparent text-[#060823] px-0 rounded-2xl py-3 text-sm leading-relaxed flex items-center gap-2 shimmer">
+                      <Loader className="h-4 w-4 text-[#52525b] animate-spin" />
+                      <span className="text-[#52525b]">{loadingText}</span>
                     </div>
                   </div>
+                )}
+
+                {apiKeyError && (
+                  <ApiKeyError onRetry={handleRetryApiKeyError} />
                 )}
 
                 <div ref={bottomRef} className="h-4" />
@@ -465,7 +435,7 @@ export function ChatInterface() {
             </div>
 
             {/* Input Area */}
-            <div className="px-6 py-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6">
+            <div className="px-6 pb-3 pt-0 sm:p-4 sm:pt-0 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6">
               <div className="mx-auto max-w-3xl">{renderInput()}</div>
             </div>
           </>
@@ -481,6 +451,14 @@ export function ChatInterface() {
         cancelLabel="Cancel"
         onConfirm={confirmDeleteConversation}
         variant="destructive"
+      />
+
+      <ApiKeyModal
+        open={apiKeyModalOpen}
+        onOpenChange={setApiKeyModalOpen}
+        existingKey={apiKey}
+        onSave={setApiKey}
+        onRemove={clearApiKey}
       />
     </div>
   );

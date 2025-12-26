@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
+import posthog from "posthog-js";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -24,6 +25,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+
+    posthog.capture("$exception", {
+      $exception_message: error.message,
+      $exception_type: error.name,
+      $exception_stack_trace_raw: error.stack,
+      $exception_component_stack: errorInfo.componentStack,
+    });
   }
 
   render() {
@@ -34,17 +42,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8 max-w-md">
-            <h2 className="text-xl font-semibold text-zinc-100 mb-2">
+          <div className="bg-white border border-[#c4c4c4] rounded p-8 max-w-md shadow-sm">
+            <h2 className="text-xl font-semibold text-[#060823] mb-2">
               Something went wrong
             </h2>
-            <p className="text-sm text-zinc-400 mb-4">
+            <p className="text-sm text-[#52525b] mb-4">
               An unexpected error occurred. Please try refreshing the page.
             </p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg cursor-pointer transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#161F81] hover:bg-[#1a2599] rounded cursor-pointer transition-colors"
             >
               Refresh page
             </button>
