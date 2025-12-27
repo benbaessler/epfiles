@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
+// Set production mode BEFORE importing the hook (it checks at module load time)
+vi.stubEnv("NEXT_PUBLIC_APP_ENV", "production");
+
 // Mock crypto module
 vi.mock("@/lib/crypto", () => ({
   encryptValue: vi.fn((value: string) => Promise.resolve(`encrypted_${value}`)),
@@ -33,6 +36,9 @@ let sessionStorageMock: ReturnType<typeof createStorageMock>;
 
 // Setup global mocks
 beforeEach(() => {
+  // Reset modules before each test so env var change takes effect
+  vi.resetModules();
+  
   localStorageMock = createStorageMock();
   sessionStorageMock = createStorageMock();
 
@@ -51,7 +57,6 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks();
-  vi.resetModules();
 });
 
 // Note: The useUsage hook checks isProd at module load time using process.env.NEXT_PUBLIC_APP_ENV
