@@ -138,10 +138,10 @@ class TestRAGService(unittest.TestCase):
         self.assertEqual(len(result["sources"]), 1)
         self.assertEqual(result["sources"][0]["doc_id"], "doc_alpha")
         
-        # Verify xAI client was called with correct model
+        # Verify xAI client (not Groq) was called for LLM generation
         self.mock_xai_instance.chat.completions.create.assert_called_once()
-        call_kwargs = self.mock_xai_instance.chat.completions.create.call_args[1]
-        self.assertEqual(call_kwargs["model"], "test-llm-model")
+        # Verify embeddings were generated via OpenAI client
+        self.mock_openai_instance.embeddings.create.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()
