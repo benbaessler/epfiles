@@ -1,6 +1,6 @@
 "use client";
 
-import { HelpCircle, Menu, Scale, Github, Info } from "lucide-react";
+import { HelpCircle, Menu, Github, Info } from "lucide-react";
 import { Popover } from "@base-ui-components/react/popover";
 import { AuthButtons } from "@/components/auth/AuthButtons";
 
@@ -65,13 +65,6 @@ export function TopBar({ hasApiKey, isSignedIn, onSettingsClick, onMenuClick }: 
                 >
                   <Info className="h-4 w-4 text-[#5a5a5a]" />
                   <span>About</span>
-                </Popover.Close>
-                <Popover.Close
-                  onClick={() => window.open("/legal", "_blank")}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#060823] hover:bg-[#f0f0f0] cursor-pointer transition-colors text-left"
-                >
-                  <Scale className="h-4 w-4 text-[#5a5a5a]" />
-                  <span>Terms & Policies</span>
                 </Popover.Close>
                 <Popover.Close
                   onClick={() => window.open("https://github.com/benbaessler/epfiles", "_blank")}

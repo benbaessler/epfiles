@@ -71,13 +71,3 @@ function UserProfileButtonInner({ collapsed = false }: UserProfileButtonProps) {
     </button>
   );
 }
-
-/* Terms & Policies button - to be moved elsewhere
-<button
-  onClick={() => router.push("/legal")}
-  className="w-full flex items-center gap-3 px-3 py-2 text-base text-[#060823] hover:bg-black/5 rounded cursor-pointer whitespace-nowrap"
->
-  <FileText className="h-5 w-5 text-[#71717a] shrink-0" />
-  Terms & policies
-</button>
-*/
