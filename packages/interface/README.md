@@ -1,6 +1,6 @@
-# epfiles.ai Interface
+# Epstein Files Interface
 
-Next.js frontend for the epfiles.ai RAG chatbot.
+Next.js frontend for the Epstein Files RAG chatbot.
 
 ## Setup
 
