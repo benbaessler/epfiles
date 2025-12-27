@@ -20,9 +20,6 @@ const FREE_MESSAGE_LIMIT = parseInt(
   10
 );
 const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
-// Explicit opt-in for local development (backend uses env XAI_API_KEY)
-// Must be explicitly set - never enabled by default in any deployment
-const isLocalDev = process.env.NEXT_PUBLIC_LOCAL_DEV === "true";
 
 export type StorageMode = "persistent" | "session";
 
@@ -46,10 +43,8 @@ const noopSetKey = (_key: string, _remember?: boolean) => {};
 const noopSetRemember = (_remember: boolean) => {};
 
 export function useUsage(): UsageState {
-  // In local development with explicit opt-in, bypass usage limits
-  // Backend uses XAI_API_KEY from env, so we treat it as if user has API key
-  // Only enabled when NEXT_PUBLIC_LOCAL_DEV=true (fail-closed design)
-  if (!isProd && isLocalDev) {
+  // In development, bypass usage limits - backend uses XAI_API_KEY from env
+  if (!isProd) {
     return {
       messageCount: 0,
       remainingMessages: FREE_MESSAGE_LIMIT,

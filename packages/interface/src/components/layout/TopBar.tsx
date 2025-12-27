@@ -4,6 +4,8 @@ import { HelpCircle, Menu, Github, Info } from "lucide-react";
 import { Popover } from "@base-ui-components/react/popover";
 import { AuthButtons } from "@/components/auth/AuthButtons";
 
+const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
+
 interface TopBarProps {
   hasApiKey: boolean;
   isSignedIn: boolean;
@@ -31,8 +33,8 @@ export function TopBar({ hasApiKey, isSignedIn, onSettingsClick, onMenuClick }: 
       <div className="hidden lg:block" />
       {/* Right side: Connection indicator + Auth buttons + Help */}
       <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-        {/* Connection indicator pill - only show when signed in */}
-        {isSignedIn && (
+        {/* Connection indicator pill - only show in production */}
+        {isSignedIn && isProd && (
           <button
             onClick={onSettingsClick}
             className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-[#D9D9D9] border border-[#c4c4c4] rounded-full text-xs sm:text-sm text-[#060823] hover:border-[#a0a0a0] transition-colors cursor-pointer"

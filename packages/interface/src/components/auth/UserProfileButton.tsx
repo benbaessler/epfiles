@@ -11,6 +11,7 @@ interface UserProfileButtonProps {
 }
 
 export function UserProfileButton({ collapsed = false }: UserProfileButtonProps) {
+  // Hide Clerk profile UI in dev mode (auth is always mocked in dev)
   if (!isProd) {
     return null;
   }

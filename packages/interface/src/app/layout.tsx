@@ -51,6 +51,7 @@ export default function RootLayout({
     </html>
   );
 
+  // Skip ClerkProvider in dev mode (auth is always mocked)
   if (!isProd) {
     return content;
   }

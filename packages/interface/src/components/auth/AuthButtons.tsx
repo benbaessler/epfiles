@@ -5,6 +5,7 @@ import { SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
 const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
 
 export function AuthButtons() {
+  // Hide Clerk auth UI in dev mode (auth is always mocked in dev)
   if (!isProd) {
     return null;
   }

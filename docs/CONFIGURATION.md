@@ -204,18 +204,16 @@ CORS_ORIGINS='["https://yourdomain.com"]'
 | `NEXT_PUBLIC_BACKEND_URL` | No | `http://localhost:8000` | Backend API URL |
 | `NEXT_PUBLIC_APP_ENV` | No | `development` | Environment mode |
 | `NEXT_PUBLIC_FREE_MESSAGE_COUNT` | No | `10` | Display value for free tier limit |
-| `NEXT_PUBLIC_LOCAL_DEV` | No | — | Set to `true` to enable local dev mode (mock auth, skip API key) |
 
 ```bash
 NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 NEXT_PUBLIC_APP_ENV=development
 NEXT_PUBLIC_FREE_MESSAGE_COUNT=10
-NEXT_PUBLIC_LOCAL_DEV=true  # Only for local development
 ```
 
 **Note**: `NEXT_PUBLIC_` prefix exposes variables to the browser.
 
-**Security**: `NEXT_PUBLIC_LOCAL_DEV` must be explicitly set to `true` to enable dev features (mock authentication, sidebar without sign-in, skip API key requirement). Never set this in staging or production environments.
+**Development Mode**: When `NEXT_PUBLIC_APP_ENV` is not `production`, auth is mocked and API key UI is hidden (backend uses `XAI_API_KEY` from environment).
 
 ---
 

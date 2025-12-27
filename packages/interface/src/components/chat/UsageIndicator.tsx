@@ -1,5 +1,7 @@
 "use client";
 
+const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
+
 interface UsageIndicatorProps {
   remainingMessages: number;
   hasApiKey: boolean;
@@ -13,6 +15,10 @@ export function UsageIndicator({
   isSignedIn,
   onAddApiKeyClick,
 }: UsageIndicatorProps) {
+  // Hide usage indicator in dev mode
+  if (!isProd) {
+    return null;
+  }
   // When connected, hide entirely (status shown in TopBar)
   if (hasApiKey) {
     return null;

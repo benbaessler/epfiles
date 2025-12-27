@@ -3,9 +3,6 @@
 import { useUser } from "@clerk/nextjs";
 
 const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
-// Explicit opt-in for local development features (sidebar, skip auth)
-// Must be explicitly set - never enabled by default in any deployment
-const isLocalDev = process.env.NEXT_PUBLIC_LOCAL_DEV === "true";
 
 interface AuthState {
   isSignedIn: boolean;
@@ -24,13 +21,13 @@ function useAuthProd(): AuthState {
   };
 }
 
-// Development hook - returns mock state based on LOCAL_DEV flag
-// Only returns authenticated state if explicitly opted in via NEXT_PUBLIC_LOCAL_DEV=true
+// Development hook - always returns mock authenticated state
+// Auth is always mocked in dev to avoid requiring Clerk configuration
 function useAuthDev(): AuthState {
   return {
-    isSignedIn: isLocalDev,
+    isSignedIn: true,
     isLoaded: true,
-    userId: isLocalDev ? "dev-user" : null,
+    userId: "dev-user",
   };
 }
 
