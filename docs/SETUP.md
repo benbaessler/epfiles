@@ -191,9 +191,32 @@ To use a different ChromaDB source:
 CHROMADB_DOWNLOAD_URL=https://your-bucket.com/chroma_db.zip
 ```
 
-### Manual Regeneration
+---
 
-If you have source documents in `packages/backend/data/chunks/`:
+## Source Document Chunks
+
+The pre-processed document chunks (~23,000 JSONL files) are distributed separately via GitHub Releases to keep the repository lightweight.
+
+### Download Chunks
+
+```bash
+# From project root
+./scripts/download-data.sh
+```
+
+This downloads and extracts chunks to `packages/backend/data/chunks/`.
+
+**Environment Variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EPFILES_CHUNKS_URL` | GitHub Release URL | Custom download URL |
+| `EPFILES_DATA_VERSION` | `data-v1` | Release tag version |
+| `EPFILES_REPO` | `benbaessler/epfiles` | GitHub repository |
+
+### Regenerate Embeddings
+
+After downloading chunks, regenerate ChromaDB:
 
 ```bash
 cd packages/backend
@@ -204,6 +227,13 @@ python scripts/embed_and_upload.py
 ```
 
 This creates a fresh ChromaDB at `packages/backend/chroma_db/`.
+
+### When to Regenerate
+
+- Testing embedding model changes
+- Adding new documents to the corpus
+- Debugging retrieval issues
+- Creating a custom dataset subset
 
 ---
 

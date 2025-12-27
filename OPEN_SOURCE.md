@@ -37,17 +37,17 @@ These must be completed before open sourcing:
 
 ## 3. Community Files
 
-- [ ] `CONTRIBUTING.md` — contribution guidelines
-- [ ] `CODE_OF_CONDUCT.md` — community standards
-- [ ] `SECURITY.md` — vulnerability reporting process
+- [x] `CONTRIBUTING.md` — contribution guidelines
+- [x] `CODE_OF_CONDUCT.md` — community standards
+- [x] `SECURITY.md` — vulnerability reporting process
 
 ---
 
 ## 4. Docker Configuration
 
-- [ ] Create `Dockerfile` for backend
-- [ ] Create `Dockerfile` for frontend
-- [ ] Create `docker-compose.yml` for local development
+- [x] Create `Dockerfile` for backend
+- [x] Create `Dockerfile` for frontend
+- [x] Create `docker-compose.yml` for local development
 
 ---
 
@@ -84,30 +84,45 @@ These must be completed before open sourcing:
 
 - [x] Document ChromaDB creation from scratch
 - [x] Embedding scripts provided (`scripts/embed_and_upload.py`)
-- [ ] Document ChromaDB bootstrap URL or make configurable
-- [ ] Decide on `data/chunks/` distribution strategy:
-  - Option A: Include in repo (document in README)
-  - Option B: Exclude via `.gitignore`
-  - Option C: Provide separate download link
+- [x] Document ChromaDB bootstrap URL or make configurable
+- [x] Decide on `data/chunks/` distribution strategy:
+  - ~~Option A: Include in repo (document in README)~~
+  - ~~Option B: Exclude via `.gitignore`~~
+  - **Option C: Provide separate download link** ✓
+  - Created `scripts/download-data.sh` for GitHub Releases distribution
 
 ---
 
 ## 8. Security Audit
 
 - [x] Git history clean — no API keys
+  - No AWS keys (AKIA pattern), no `sk-` prefixed secrets in history
+  - No private keys or `-----BEGIN` blocks found
+  - No `.pem`, `.key`, or SSH key files in history
 - [x] `.env` files gitignored
+  - Root `.gitignore`: `.env`, `.env.local`, `.env.*.local`
+  - `packages/backend/.gitignore`: `.env`
+  - `packages/interface/.gitignore`: `.env*`, `!.env.example`
+  - Only `.env.example` files tracked (placeholder values only)
 - [x] `service_account.json` never committed
-- [ ] Verify no production URLs remain
-- [ ] Final git history audit (BFG if needed)
+  - No `service_account.json` in tracked files
+  - No `service_account*` in git history
+- [x] Verify no production URLs remain
+  - Placeholder URLs in docs: `your-backend.railway.app`, `your-domain.com`
+  - Public R2 URL for ChromaDB bootstrap is intentional (public asset)
+  - External service URLs (xAI, PostHog, Clerk) are expected
+- [x] Final git history audit (BFG if needed)
+  - Large files in history are data files (chunks, gdrive-links.json)
+  - No secrets detected requiring BFG cleanup
 
 ---
 
 ## 9. Final Checks
 
-- [ ] Run full test suite (backend + frontend)
-- [ ] Test fresh clone + setup on clean machine
-- [ ] Verify all environment variables documented
-- [ ] Write release notes
+- [x] Run full test suite (backend + frontend) → `./scripts/test-all.sh`
+- [x] Test fresh clone + setup on clean machine → `./scripts/verify-setup.sh`
+- [x] Verify all environment variables documented → `.env.example`
+- [x] Write release notes
 
 ---
 

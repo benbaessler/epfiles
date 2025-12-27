@@ -84,9 +84,20 @@ To use a custom database URL, set the environment variable:
 CHROMADB_DOWNLOAD_URL=https://your-bucket.com/chroma_db.zip
 ```
 
-### Manual Regeneration (Optional)
+### Source Document Chunks (Optional)
 
-If you have the chunked JSONL files in `packages/backend/data/chunks/`, you can regenerate embeddings:
+The pre-processed document chunks are distributed separately to keep the repository lightweight. Download them if you want to regenerate embeddings or modify the dataset:
+
+```bash
+# Download chunks (~60MB compressed, ~190MB extracted)
+./scripts/download-data.sh
+```
+
+This downloads JSONL files to `packages/backend/data/chunks/`.
+
+### Regenerate Embeddings (Optional)
+
+After downloading chunks, you can regenerate the ChromaDB:
 
 ```bash
 cd packages/backend
