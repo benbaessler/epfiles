@@ -4,6 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { server, mockQueryResponse } from "../../setup";
 import { http, HttpResponse } from "msw";
 
+// Backend URL must match what api.ts uses
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 // Mock Clerk - must be before any component imports
 vi.mock("@clerk/nextjs", () => ({
   useUser: vi.fn(() => ({
@@ -159,7 +162,7 @@ describe("ChatInterface", () => {
       let capturedBody: Record<string, unknown> | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           apiCalled = true;
           capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json(mockQueryResponse);

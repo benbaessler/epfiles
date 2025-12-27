@@ -75,15 +75,18 @@ export const mockQueryResponse = {
   session_id: "new-session-id",
 };
 
-// MSW handlers for API mocking
+// Backend URL must match what api.ts uses
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+// MSW handlers for API mocking - use absolute URLs to match api.ts
 export const handlers = [
   // GET /api/conversations
-  http.get("/api/conversations", () => {
+  http.get(`${BACKEND_URL}/api/conversations`, () => {
     return HttpResponse.json(mockConversations);
   }),
 
   // POST /api/conversations
-  http.post("/api/conversations", () => {
+  http.post(`${BACKEND_URL}/api/conversations`, () => {
     return HttpResponse.json({
       session_id: "new-session-id",
       title: null,
@@ -94,12 +97,12 @@ export const handlers = [
   }),
 
   // GET /api/conversations/:sessionId/messages
-  http.get("/api/conversations/:sessionId/messages", () => {
+  http.get(`${BACKEND_URL}/api/conversations/:sessionId/messages`, () => {
     return HttpResponse.json(mockMessages);
   }),
 
   // GET /api/conversations/:sessionId
-  http.get("/api/conversations/:sessionId", ({ params }) => {
+  http.get(`${BACKEND_URL}/api/conversations/:sessionId`, ({ params }) => {
     const conversation = mockConversations.find(
       (c) => c.session_id === params.sessionId
     );
@@ -110,12 +113,12 @@ export const handlers = [
   }),
 
   // DELETE /api/conversations/:sessionId
-  http.delete("/api/conversations/:sessionId", () => {
+  http.delete(`${BACKEND_URL}/api/conversations/:sessionId`, () => {
     return HttpResponse.json({ success: true });
   }),
 
   // POST /api/query
-  http.post("/api/query", () => {
+  http.post(`${BACKEND_URL}/api/query`, () => {
     return HttpResponse.json(mockQueryResponse);
   }),
 ];

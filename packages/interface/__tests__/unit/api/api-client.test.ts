@@ -14,6 +14,9 @@ import {
   mockQueryResponse,
 } from "../../setup";
 
+// Backend URL must match what api.ts uses
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 describe("API Client", () => {
   describe("fetchConversations", () => {
     it("should fetch conversations successfully", async () => {
@@ -25,7 +28,7 @@ describe("API Client", () => {
 
     it("should throw error when fetch fails", async () => {
       server.use(
-        http.get("/api/conversations", () => {
+        http.get(`${BACKEND_URL}/api/conversations`, () => {
           return HttpResponse.json(
             { error: "Internal server error" },
             { status: 500 }
@@ -51,7 +54,7 @@ describe("API Client", () => {
 
     it("should throw error when fetch fails", async () => {
       server.use(
-        http.get("/api/conversations/:sessionId/messages", () => {
+        http.get(`${BACKEND_URL}/api/conversations/:sessionId/messages`, () => {
           return HttpResponse.json({ error: "Not found" }, { status: 404 });
         })
       );
@@ -76,7 +79,7 @@ describe("API Client", () => {
       let capturedBody: Record<string, unknown> | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json(mockQueryResponse);
         })
@@ -95,7 +98,7 @@ describe("API Client", () => {
       let capturedBody: Record<string, unknown> | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json(mockQueryResponse);
         })
@@ -112,7 +115,7 @@ describe("API Client", () => {
 
     it("should throw error with detail message when available", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Rate limit exceeded" },
             { status: 429 }
@@ -125,7 +128,7 @@ describe("API Client", () => {
 
     it("should throw generic error when no detail available", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json({}, { status: 500 });
         })
       );
@@ -143,7 +146,7 @@ describe("API Client", () => {
 
     it("should throw error when delete fails", async () => {
       server.use(
-        http.delete("/api/conversations/:sessionId", () => {
+        http.delete(`${BACKEND_URL}/api/conversations/:sessionId`, () => {
           return HttpResponse.json({ error: "Not found" }, { status: 404 });
         })
       );
@@ -180,7 +183,7 @@ describe("API Client", () => {
   describe("sendQuery API key error detection", () => {
     it("should throw ApiKeyError on 401 status", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Unauthorized" },
             { status: 401 }
@@ -193,7 +196,7 @@ describe("API Client", () => {
 
     it("should throw ApiKeyError on 403 status", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Forbidden" },
             { status: 403 }
@@ -206,7 +209,7 @@ describe("API Client", () => {
 
     it("should throw ApiKeyError when detail contains 'api key'", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Invalid API key provided" },
             { status: 400 }
@@ -219,7 +222,7 @@ describe("API Client", () => {
 
     it("should throw ApiKeyError when detail contains 'api_key'", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "The api_key is invalid" },
             { status: 400 }
@@ -232,7 +235,7 @@ describe("API Client", () => {
 
     it("should throw ApiKeyError when detail contains 'authentication'", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Authentication failed" },
             { status: 400 }
@@ -245,7 +248,7 @@ describe("API Client", () => {
 
     it("should throw ApiKeyError when detail contains 'unauthorized'", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "User is unauthorized" },
             { status: 400 }
@@ -258,7 +261,7 @@ describe("API Client", () => {
 
     it("should throw ApiKeyError when detail contains 'invalid key'", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Invalid key format" },
             { status: 400 }
@@ -271,7 +274,7 @@ describe("API Client", () => {
 
     it("should throw ApiKeyError when detail contains 'incorrect api key'", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Incorrect API key provided" },
             { status: 400 }
@@ -284,7 +287,7 @@ describe("API Client", () => {
 
     it("should include error detail in ApiKeyError message", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Your API key has expired" },
             { status: 401 }
@@ -303,7 +306,7 @@ describe("API Client", () => {
 
     it("should NOT throw ApiKeyError for unrelated errors", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Rate limit exceeded" },
             { status: 429 }
@@ -317,7 +320,7 @@ describe("API Client", () => {
 
     it("should NOT throw ApiKeyError for server errors without API key keywords", async () => {
       server.use(
-        http.post("/api/query", () => {
+        http.post(`${BACKEND_URL}/api/query`, () => {
           return HttpResponse.json(
             { detail: "Internal server error" },
             { status: 500 }
@@ -335,7 +338,7 @@ describe("API Client", () => {
       let capturedBody: Record<string, unknown> | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json(mockQueryResponse);
         })
@@ -358,7 +361,7 @@ describe("API Client", () => {
       let capturedBody: Record<string, unknown> | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json(mockQueryResponse);
         })
@@ -376,7 +379,7 @@ describe("API Client", () => {
       let capturedHeaders: Headers | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedHeaders = request.headers;
           return HttpResponse.json(mockQueryResponse);
         })
@@ -394,7 +397,7 @@ describe("API Client", () => {
       let capturedHeaders: Headers | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedHeaders = request.headers;
           return HttpResponse.json(mockQueryResponse);
         })
@@ -409,7 +412,7 @@ describe("API Client", () => {
       let capturedHeaders: Headers | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedHeaders = request.headers;
           return HttpResponse.json(mockQueryResponse);
         })
@@ -427,7 +430,7 @@ describe("API Client", () => {
       let capturedHeaders: Headers | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedHeaders = request.headers;
           return HttpResponse.json(mockQueryResponse);
         })
@@ -443,7 +446,7 @@ describe("API Client", () => {
       let capturedHeaders: Headers | null = null;
 
       server.use(
-        http.post("/api/query", async ({ request }) => {
+        http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>;
           capturedHeaders = request.headers;
           return HttpResponse.json(mockQueryResponse);
