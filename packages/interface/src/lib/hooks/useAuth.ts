@@ -21,12 +21,13 @@ function useAuthProd(): AuthState {
   };
 }
 
-// Development hook - returns mock unauthenticated state
+// Development hook - returns mock authenticated state for dev testing
+// Allows sidebar and chat history to work without Clerk
 function useAuthDev(): AuthState {
   return {
-    isSignedIn: false,
+    isSignedIn: true,
     isLoaded: true,
-    userId: null,
+    userId: "dev-user",
   };
 }
 

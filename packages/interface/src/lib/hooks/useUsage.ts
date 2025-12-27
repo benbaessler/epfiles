@@ -44,12 +44,13 @@ const noopSetRemember = (_remember: boolean) => {};
 
 export function useUsage(): UsageState {
   // In development, bypass usage limits entirely
+  // Backend uses XAI_API_KEY from env, so we treat it as if user has API key
   if (!isProd) {
     return {
       messageCount: 0,
       remainingMessages: FREE_MESSAGE_LIMIT,
       apiKey: null,
-      hasApiKey: false,
+      hasApiKey: true, // Backend uses env key, hide usage indicator
       hasReachedLimit: false,
       isLoaded: true,
       rememberKey: true,
