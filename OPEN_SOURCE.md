@@ -72,11 +72,14 @@ These must be completed before open sourcing:
 - [x] All settings from environment/config
 - [x] Remove unused code/comments
 - [x] Fix "JeffGPT" naming in `ARCHITECTURE.md`
+- [x] Remove unused `groq` package from requirements.txt
+- [x] Update ARCHITECTURE.md to use xAI/Grok instead of Groq references
 
 ### Frontend
 - [x] xAI API key user input implemented
 - [x] No TODO/FIXME comments
 - [x] Remove legal pages (deployers create their own)
+- [x] Fix `packages/interface/README.md` env var documentation
 
 ---
 
@@ -123,13 +126,15 @@ These must be completed before open sourcing:
 - [x] Test fresh clone + setup on clean machine → `./scripts/verify-setup.sh`
 - [x] Verify all environment variables documented → `.env.example`
 - [x] Write release notes
+- [x] Review ARCHITECTURE.md for accuracy (updated xAI/Grok references)
+- [x] Review all package README files
 
 ---
 
 ## 10. Launch
 
 - [ ] Push to public GitHub
-- [ ] Add repository topics (rag, llm, citations, document-search, etc.)
+- [x] Add repository topics (rag, llm, citations, document-search, etc.)
 - [ ] Post to Hacker News (Show HN)
 - [ ] Post to r/MachineLearning, r/LocalLLaMA
 - [ ] Tweet announcement
@@ -141,3 +146,4 @@ These must be completed before open sourcing:
 
 - The "citations-first" RAG pattern is the main value proposition
 - Consider writing a blog post explaining architecture decisions
+- ChromaDB download URL points to public R2 bucket (intentional for distribution)
