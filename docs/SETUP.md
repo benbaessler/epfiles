@@ -319,6 +319,11 @@ The root `.env` file is shared by both packages. Package-specific overrides can 
 - `packages/backend/.env`
 - `packages/interface/.env.local`
 
+**Local Development Mode**: To enable sidebar and skip authentication in local dev, add to `packages/interface/.env.local`:
+```bash
+NEXT_PUBLIC_LOCAL_DEV=true
+```
+
 See [CONFIGURATION.md](./CONFIGURATION.md) for all available options.
 
 ---
