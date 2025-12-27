@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Tests
+__tests__/
+e2e/
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+
+# Config files not needed in build
+playwright.config.ts
+vitest.config.ts
+eslint.config.mjs
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# Misc
+*.md
+bun.lock
+tsconfig.tsbuildinfo
+

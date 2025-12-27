@@ -1,0 +1,38 @@
+# Virtual environments
+venv/
+env_name/
+.venv/
+*.egg-info/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# ChromaDB (downloaded on startup)
+chroma_db/
+
+# Data files (large, not needed in image)
+data/
+
+# Tests
+tests/
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# Environment files
+.env
+.env.*
+
+# Git
+.git/
+.gitignore
+
+# Misc
+*.md
+Procfile
+
