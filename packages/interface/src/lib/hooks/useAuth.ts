@@ -3,6 +3,9 @@
 import { useUser } from "@clerk/nextjs";
 
 const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
+// Explicit opt-in for local development features (sidebar, skip auth)
+// Must be explicitly set - never enabled by default in any deployment
+const isLocalDev = process.env.NEXT_PUBLIC_LOCAL_DEV === "true";
 
 interface AuthState {
   isSignedIn: boolean;
@@ -21,19 +24,18 @@ function useAuthProd(): AuthState {
   };
 }
 
-// Development hook - returns mock authenticated state for dev testing
-// Allows sidebar and chat history to work without Clerk
+// Development hook - returns mock state based on LOCAL_DEV flag
+// Only returns authenticated state if explicitly opted in via NEXT_PUBLIC_LOCAL_DEV=true
 function useAuthDev(): AuthState {
   return {
-    isSignedIn: true,
+    isSignedIn: isLocalDev,
     isLoaded: true,
-    userId: "dev-user",
+    userId: isLocalDev ? "dev-user" : null,
   };
 }
 
 // Export the appropriate hook based on environment
 // Decision is made at module load time to avoid conditional hook calls
 export const useAuth = isProd ? useAuthProd : useAuthDev;
-
 
 
