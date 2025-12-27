@@ -1,44 +1,23 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-
 export default function AboutPage() {
-  const router = useRouter();
-
   return (
     <div className="min-h-screen bg-[#D9D9D9] overflow-auto">
       {/* Main Content Container */}
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-        {/* Header Row with Back Button */}
-        <div className="pt-4 sm:pt-6 pb-8 sm:pb-12">
-          <div className="flex items-start gap-4 sm:gap-6">
-            {/* Back Button */}
-            <button
-              onClick={() => router.back()}
-              className="text-[#060823] hover:bg-black/5 active:bg-black/10 rounded-xl cursor-pointer w-10 h-10 flex items-center justify-center shrink-0 transition-colors duration-150 mt-1"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-
-            {/* Hero Content */}
-            <div className="flex-1 min-w-0">
-              <h1 className="font-[family-name:var(--font-libre-baskerville)] text-[1.625rem] sm:text-[1.875rem] md:text-[2.125rem] lg:text-[2.375rem] text-[#060823] leading-[1.15] tracking-[-0.02em] mb-4 sm:mb-5">
-                Ask questions about the Epstein Files.
-                <br />
-                Get answers with sources.
-              </h1>
-              <p className="text-[#52525b] text-[0.9375rem] sm:text-base md:text-lg leading-relaxed max-w-xl">
-                Search thousands of court documents, depositions, and government
-                releases using AI, with direct links to the original sources.
-              </p>
-            </div>
-          </div>
+        {/* Hero Section */}
+        <div className="pt-12 sm:pt-16 md:pt-20 lg:pt-24 pb-8 sm:pb-12">
+          <h1 className="font-[family-name:var(--font-libre-baskerville)] text-[1.625rem] sm:text-[1.875rem] md:text-[2.125rem] lg:text-[2.375rem] text-[#060823] leading-[1.15] tracking-[-0.02em] mb-4 sm:mb-5">
+            Ask questions about the Epstein Files.
+            <br />
+            Get answers with sources.
+          </h1>
+          <p className="text-[#52525b] text-[0.9375rem] sm:text-base md:text-lg leading-relaxed max-w-xl">
+            Search thousands of court documents, depositions, and government
+            releases using AI, with direct links to the original sources.
+          </p>
         </div>
 
         {/* Article Content */}
-        <article className="pl-14 sm:pl-16 pb-12 sm:pb-16 md:pb-20">
+        <article className="pb-12 sm:pb-16 md:pb-20">
           {/* How It Works */}
           <section className="mb-12 sm:mb-14">
             <h2 className="text-lg sm:text-xl text-[#060823] font-semibold mb-5 tracking-[-0.01em]">
