@@ -34,6 +34,5 @@ eslint.config.mjs
 
 # Misc
 *.md
-bun.lock
 tsconfig.tsbuildinfo
 
