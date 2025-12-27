@@ -161,7 +161,10 @@ function PrivacyContent() {
             <li><strong>Opt-out</strong> - Opt out of marketing communications</li>
           </ul>
           <p className="mt-4">
-            To exercise these rights, contact us at support@epfiles.ai.
+            To exercise these rights, open an issue on{" "}
+            <a href="https://github.com/benbaessler/epfiles/issues" className="text-[#161F81] hover:text-[#1a2599]">
+              GitHub
+            </a>.
           </p>
         </section>
 
@@ -194,12 +197,10 @@ function PrivacyContent() {
         <section>
           <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">10. Contact Us</h2>
           <p>
-            If you have questions about this Privacy Policy, please contact us at:
-          </p>
-          <p className="mt-2">
-            <a href="mailto:support@epfiles.ai" className="text-[#161F81] hover:text-[#1a2599]">
-              support@epfiles.ai
-            </a>
+            If you have questions about this Privacy Policy, please open an issue on{" "}
+            <a href="https://github.com/benbaessler/epfiles/issues" className="text-[#161F81] hover:text-[#1a2599]">
+              GitHub
+            </a>.
           </p>
         </section>
       </div>
@@ -373,12 +374,10 @@ function TermsContent() {
         <section>
           <h2 className="text-xl text-[#060823] font-semibold mt-8 mb-4">13. Contact</h2>
           <p>
-            For questions about these Terms, contact us at:
-          </p>
-          <p className="mt-2">
-            <a href="mailto:support@epfiles.ai" className="text-[#161F81] hover:text-[#1a2599]">
-              support@epfiles.ai
-            </a>
+            For questions about these Terms, please open an issue on{" "}
+            <a href="https://github.com/benbaessler/epfiles/issues" className="text-[#161F81] hover:text-[#1a2599]">
+              GitHub
+            </a>.
           </p>
         </section>
       </div>

@@ -197,21 +197,6 @@ export default function AboutPage() {
                 </p>
               </section>
 
-              {/* Contact */}
-              <section className="mb-12">
-                <h2 className="text-xl text-[#060823] font-semibold mb-4">
-                  Contact
-                </h2>
-                <p className="text-[#52525b]">
-                  Questions or feedback? Reach us at{" "}
-                  <a
-                    href="mailto:support@epfiles.ai"
-                    className="text-[#161F81] hover:text-[#1a2599] underline underline-offset-2"
-                  >
-                    support@epfiles.ai
-                  </a>
-                </p>
-              </section>
             </div>
           </div>
         </div>
