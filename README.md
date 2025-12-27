@@ -12,15 +12,34 @@ epfiles/
 └── .env               # Central environment configuration
 ```
 
-## Prerequisites
+## Quick Start
+
+### Docker Compose (Recommended)
+
+```bash
+git clone git@github.com:benbaessler/epfiles.git
+cd epfiles
+cp .env.example .env
+# Edit .env with your API keys (OPENAI_API_KEY required)
+docker compose up -d
+```
+
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:8000
+
+See [Setup Guide](./docs/SETUP.md) for detailed instructions and manual installation.
+
+---
+
+### Manual Installation
+
+#### Prerequisites
 
 - **Python** 3.11+
 - **Bun** (or Node.js 20+)
 - **PostgreSQL** 15+
 
-## Quick Start
-
-### 1. Clone and Configure Environment
+#### 1. Clone and Configure Environment
 
 ```bash
 git clone git@github.com:benbaessler/epfiles.git
@@ -39,7 +58,7 @@ XAI_API_KEY=xai-xxx             # For LLM
 DATABASE_URL=postgresql://...   # PostgreSQL connection
 ```
 
-### 2. Set Up Backend
+#### 2. Set Up Backend
 
 ```bash
 cd packages/backend
@@ -60,7 +79,7 @@ uvicorn app.main:app --reload --port 8000
 
 The API will be available at `http://localhost:8000`.
 
-### 3. Set Up Interface
+#### 3. Set Up Interface
 
 ```bash
 cd packages/interface
