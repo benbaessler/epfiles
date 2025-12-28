@@ -24,8 +24,14 @@ export function AuthButtons() {
 function AuthButtonsInner() {
   const { isLoaded, isSignedIn } = useUser();
 
+  // #region agent log - TEMP DEBUG
+  console.log('[DEBUG-AuthButtonsInner]', { isLoaded, isSignedIn });
+  // #endregion
+
   if (!isLoaded) {
-    return null;
+    // #region agent log - TEMP DEBUG INDICATOR
+    return <span className="text-xs text-red-500 font-mono">Clerk loading...</span>;
+    // #endregion
   }
 
   if (isSignedIn) {
