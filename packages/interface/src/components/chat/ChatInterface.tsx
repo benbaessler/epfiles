@@ -31,9 +31,6 @@ import { useUsage } from "@/lib/hooks/useUsage";
 
 export function ChatInterface() {
   const { isSignedIn, userId } = useAuth();
-  // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/7285874b-ebbb-41f9-9f7c-6ccf8f9effce',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChatInterface.tsx:render',message:'ChatInterface auth state',data:{isSignedIn,userId,sidebarWillShow:isSignedIn},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5'})}).catch(()=>{});
-  // #endregion
   const {
     messageCount,
     remainingMessages,
