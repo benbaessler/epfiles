@@ -98,3 +98,4 @@ log_info "Next steps:"
 echo "  1. Run embedding generation: cd packages/backend && python scripts/embed_and_upload.py"
 echo "  2. Or start the server (ChromaDB auto-downloads if available)"
 
+
