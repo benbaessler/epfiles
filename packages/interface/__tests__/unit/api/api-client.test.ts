@@ -376,7 +376,7 @@ describe("API Client", () => {
     });
 
     it("should send API key header when provided", async () => {
-      let capturedHeaders: Headers | null = null;
+      let capturedHeaders: Headers | undefined;
 
       server.use(
         http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
@@ -390,11 +390,11 @@ describe("API Client", () => {
         apiKey: "xai-test-key-12345",
       });
 
-      expect(capturedHeaders?.get("X-XAI-API-Key")).toBe("xai-test-key-12345");
+      expect(capturedHeaders!.get("X-XAI-API-Key")).toBe("xai-test-key-12345");
     });
 
     it("should NOT send API key header when not provided", async () => {
-      let capturedHeaders: Headers | null = null;
+      let capturedHeaders: Headers | undefined;
 
       server.use(
         http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
@@ -405,11 +405,11 @@ describe("API Client", () => {
 
       await sendQuery({ query: "No API key" });
 
-      expect(capturedHeaders?.get("X-XAI-API-Key")).toBeNull();
+      expect(capturedHeaders!.get("X-XAI-API-Key")).toBeNull();
     });
 
     it("should send message count header when provided", async () => {
-      let capturedHeaders: Headers | null = null;
+      let capturedHeaders: Headers | undefined;
 
       server.use(
         http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
@@ -423,11 +423,11 @@ describe("API Client", () => {
         messageCount: 7,
       });
 
-      expect(capturedHeaders?.get("X-Message-Count")).toBe("7");
+      expect(capturedHeaders!.get("X-Message-Count")).toBe("7");
     });
 
     it("should NOT send message count header when undefined", async () => {
-      let capturedHeaders: Headers | null = null;
+      let capturedHeaders: Headers | undefined;
 
       server.use(
         http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
@@ -438,12 +438,12 @@ describe("API Client", () => {
 
       await sendQuery({ query: "No message count" });
 
-      expect(capturedHeaders?.get("X-Message-Count")).toBeNull();
+      expect(capturedHeaders!.get("X-Message-Count")).toBeNull();
     });
 
     it("should handle all options together", async () => {
       let capturedBody: Record<string, unknown> | null = null;
-      let capturedHeaders: Headers | null = null;
+      let capturedHeaders: Headers | undefined;
 
       server.use(
         http.post(`${BACKEND_URL}/api/query`, async ({ request }) => {
@@ -466,8 +466,8 @@ describe("API Client", () => {
         session_id: "full-session",
         top_k: 10,
       });
-      expect(capturedHeaders?.get("X-XAI-API-Key")).toBe("xai-full-key");
-      expect(capturedHeaders?.get("X-Message-Count")).toBe("15");
+      expect(capturedHeaders!.get("X-XAI-API-Key")).toBe("xai-full-key");
+      expect(capturedHeaders!.get("X-Message-Count")).toBe("15");
     });
   });
 });

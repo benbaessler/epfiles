@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 
 // Set production mode BEFORE importing the hook (it checks at module load time)
 vi.stubEnv("NEXT_PUBLIC_APP_ENV", "production");
