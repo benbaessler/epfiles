@@ -22,11 +22,11 @@ const nextConfig: NextConfig = {
           key: "Content-Security-Policy",
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://clerk.epfiles.ai https://challenges.cloudflare.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://clerk.epfiles.ai https://challenges.cloudflare.com https://*.posthog.com https://*.i.posthog.com",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https: blob:",
             "font-src 'self' data:",
-            `connect-src 'self' ${backendUrl} https://*.clerk.accounts.dev https://clerk.epfiles.ai https://*.posthog.com https://us.i.posthog.com https://api.x.ai wss://*.clerk.accounts.dev wss://clerk.epfiles.ai`,
+            `connect-src 'self' ${backendUrl} https://*.clerk.accounts.dev https://clerk.epfiles.ai https://*.posthog.com https://*.i.posthog.com https://api.x.ai wss://*.clerk.accounts.dev wss://clerk.epfiles.ai`,
             "frame-src 'self' https://*.clerk.accounts.dev https://clerk.epfiles.ai https://challenges.cloudflare.com",
             "worker-src 'self' blob:",
           ].join("; "),
