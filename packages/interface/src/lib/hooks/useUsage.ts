@@ -39,28 +39,29 @@ interface UsageState {
 
 // No-op functions for development mode
 const noop = () => {};
-const noopSetKey = (_key: string, _remember?: boolean) => {};
-const noopSetRemember = (_remember: boolean) => {};
+
+// Dev mode static return value (stable reference)
+const devModeState: UsageState = {
+  messageCount: 0,
+  remainingMessages: FREE_MESSAGE_LIMIT,
+  apiKey: null,
+  hasApiKey: true, // Backend uses env key, hide usage indicator
+  hasReachedLimit: false,
+  isLoaded: true,
+  rememberKey: true,
+  incrementUsage: noop,
+  setApiKey: noop,
+  clearApiKey: noop,
+  setRememberKey: noop,
+};
 
 export function useUsage(): UsageState {
-  // In development, bypass usage limits - backend uses XAI_API_KEY from env
-  if (!isProd) {
-    return {
-      messageCount: 0,
-      remainingMessages: FREE_MESSAGE_LIMIT,
-      apiKey: null,
-      hasApiKey: true, // Backend uses env key, hide usage indicator
-      hasReachedLimit: false,
-      isLoaded: true,
-      rememberKey: true,
-      incrementUsage: noop,
-      setApiKey: noopSetKey,
-      clearApiKey: noop,
-      setRememberKey: noopSetRemember,
-    };
-  }
+  // Always call all hooks unconditionally to satisfy rules of hooks
+  const prodState = useUsageInner();
 
-  return useUsageInner();
+  // In development, bypass usage limits - backend uses XAI_API_KEY from env
+  // Return dev state but hooks were still called unconditionally
+  return isProd ? prodState : devModeState;
 }
 
 function useUsageInner(): UsageState {
