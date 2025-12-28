@@ -41,13 +41,14 @@ COPY scripts/ ./scripts/
 # Create directory for ChromaDB (will be downloaded on startup)
 RUN mkdir -p /app/chroma_db
 
-# Expose port
-EXPOSE 8000
+# Default port (Railway overrides via $PORT env var)
+ENV PORT=8000
+EXPOSE ${PORT}
 
-# Health check
+# Health check (uses $PORT for dynamic port)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Run database initialization and start server
-CMD ["sh", "-c", "python scripts/docker_entrypoint.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Run database initialization and start server (uses $PORT for Railway compatibility)
+CMD ["sh", "-c", "python scripts/docker_entrypoint.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
 
