@@ -17,6 +17,11 @@ export function TopBar({ hasApiKey, isSignedIn, onSettingsClick, onMenuClick }: 
 
   return (
     <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 bg-[#D9D9D9] border-b border-[#c4c4c4]">
+      {/* #region agent log - TEMP DEBUG INDICATOR */}
+      <div className="fixed bottom-2 left-2 bg-black text-white text-xs p-2 rounded z-50 font-mono">
+        isProd: {String(isProd)} | ENV: {process.env.NEXT_PUBLIC_APP_ENV ?? 'undefined'} | isSignedIn: {String(isSignedIn)}
+      </div>
+      {/* #endregion */}
       {/* Left side: Menu button (below lg breakpoint, only when signed in) */}
       {isSignedIn ? (
         <button

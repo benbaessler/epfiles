@@ -4,7 +4,15 @@ import { SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
 
 const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
 
+// #region agent log
+fetch('http://127.0.0.1:7246/ingest/7285874b-ebbb-41f9-9f7c-6ccf8f9effce',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthButtons.tsx:module-load',message:'AuthButtons module loaded',data:{isProd,envValue:process.env.NEXT_PUBLIC_APP_ENV},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+// #endregion
+
 export function AuthButtons() {
+  // #region agent log
+  fetch('http://127.0.0.1:7246/ingest/7285874b-ebbb-41f9-9f7c-6ccf8f9effce',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthButtons.tsx:AuthButtons',message:'AuthButtons render',data:{isProd,willRender:isProd},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+  // #endregion
+
   // Hide Clerk auth UI in dev mode (auth is always mocked in dev)
   if (!isProd) {
     return null;
