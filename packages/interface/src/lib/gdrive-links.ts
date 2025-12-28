@@ -1,4 +1,3 @@
-import gdriveMapping from "@/data/gdrive-links.json";
 import { getDOJUrl, hasDOJLink } from "./doj-links";
 
 type GDriveEntry = {
@@ -10,7 +9,15 @@ type GDriveEntry = {
 
 type GDriveMapping = Record<string, GDriveEntry>;
 
-const mapping = gdriveMapping as unknown as GDriveMapping;
+// Dynamic import with fallback for CI/build environments where the JSON may not exist
+let mapping: GDriveMapping = {};
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  mapping = require("@/data/gdrive-links.json") as GDriveMapping;
+} catch {
+  // JSON file doesn't exist (e.g., in CI), use empty mapping
+}
 
 /**
  * Get the URL for a document, checking GDrive first, then DOJ

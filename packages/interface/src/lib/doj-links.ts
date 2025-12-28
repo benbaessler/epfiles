@@ -1,5 +1,3 @@
-import dojMapping from "@/data/doj-links.json";
-
 type DOJEntry = {
   url: string;
   dataSet: number;
@@ -7,7 +5,15 @@ type DOJEntry = {
 
 type DOJMapping = Record<string, DOJEntry>;
 
-const mapping = dojMapping as unknown as DOJMapping;
+// Dynamic import with fallback for CI/build environments where the JSON may not exist
+let mapping: DOJMapping = {};
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  mapping = require("@/data/doj-links.json") as DOJMapping;
+} catch {
+  // JSON file doesn't exist (e.g., in CI), use empty mapping
+}
 
 /**
  * Get the DOJ URL for a document ID (EFTA format)
