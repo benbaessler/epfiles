@@ -10,6 +10,21 @@ const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Proxy PostHog to bypass ad blockers
+  rewrites: async () => [
+    {
+      source: "/ingest/static/:path*",
+      destination: "https://us-assets.i.posthog.com/static/:path*",
+    },
+    {
+      source: "/ingest/:path*",
+      destination: "https://us.i.posthog.com/:path*",
+    },
+    {
+      source: "/ingest/decide",
+      destination: "https://us.i.posthog.com/decide",
+    },
+  ],
   headers: async () => [
     {
       source: "/:path*",
