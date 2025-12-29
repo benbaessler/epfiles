@@ -29,6 +29,8 @@ import {
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUsage } from "@/lib/hooks/useUsage";
 
+const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
+
 export function ChatInterface() {
   const { isSignedIn, userId } = useAuth();
   const {
@@ -308,6 +310,19 @@ export function ChatInterface() {
   };
 
   const renderInput = () => {
+    // Check if input should be disabled due to limit (only in prod)
+    const isLimitReached = isProd && hasReachedLimit && !hasApiKey;
+
+    // Generate placeholder text
+    const getPlaceholder = () => {
+      if (isLimitReached) {
+        return isSignedIn
+          ? "Add your xAI API key for unlimited usage."
+          : "Sign in to connect your xAI API key and save chats.";
+      }
+      return messages.length > 0 ? "Follow up" : "Start typing...";
+    };
+
     return (
       <div className="w-full">
         <div
@@ -317,14 +332,14 @@ export function ChatInterface() {
         >
           <textarea
             ref={textareaRef}
-            className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 py-2 px-2 sm:px-3 text-sm sm:text-base resize-none max-h-[200px] text-[#060823] placeholder:text-[#71717a] outline-none overflow-x-auto overflow-y-auto leading-normal"
-            placeholder={messages.length > 0 ? "Follow up" : "Start typing..."}
+            className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 py-2 px-2 sm:px-3 text-sm sm:text-base resize-none max-h-[200px] text-[#060823] placeholder:text-[#71717a] outline-none overflow-x-auto overflow-y-auto leading-normal disabled:bg-transparent disabled:cursor-not-allowed"
+            placeholder={getPlaceholder()}
             rows={1}
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             style={{ height: "36px" }}
-            disabled={isLoading}
+            disabled={isLoading || isLimitReached}
             wrap="off"
           />
 
