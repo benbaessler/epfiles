@@ -391,7 +391,7 @@ export function ChatInterface() {
             <div className="flex-1 flex flex-col items-center justify-center">
               <div className="w-full max-w-3xl flex flex-col items-center">
                 <p className="font-code text-[10px] sm:text-xs text-[#52525b] mb-4 sm:mb-6 uppercase text-center leading-relaxed max-w-xs sm:max-w-none">
-                  Trained on over 33,000 documents. May hallucinate, always cross-check with sources.
+                  Trained on over 36,000 documents. May hallucinate, always cross-check with sources.
                 </p>
                 <h1 className="font-serif text-3xl tracking-tight sm:text-5xl md:text-6xl text-[#060823] text-center mb-6 sm:mb-8 leading-[1.1]">
                   Ask anything about the
